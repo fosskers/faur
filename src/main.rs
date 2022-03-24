@@ -2,6 +2,7 @@ mod error;
 
 use error::Error;
 use serde::{Deserialize, Deserializer, Serialize};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use warp::Filter;
@@ -26,6 +27,19 @@ struct Package {
     name: String,
 }
 
+/// Various fast lookup schemes for the underlying [`Package`] data.
+struct Index<'a> {
+    by_name: HashMap<&'a str, &'a Package>,
+}
+
+impl<'a> Index<'a> {
+    /// Construct a new `Index`.
+    fn new(db: &'a [Package]) -> Index<'a> {
+        let by_name = db.iter().map(|p| (p.name.as_str(), p)).collect();
+        Index { by_name }
+    }
+}
+
 fn commas<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
 where
     D: Deserializer<'de>,
@@ -48,6 +62,7 @@ fn db_init() -> Result<Vec<Package>, Error> {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let db = db_init()?;
+    let ix = Index::new(&db);
 
     let search = warp::get()
         .and(warp::path("packages"))
