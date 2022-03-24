@@ -1,0 +1,24 @@
+[
+  {
+    "Conflicts": ["aura-bin", "aura-git"],
+    "Depends": ["gmp", "pacman", "git"],
+    "Description": "A secure package manager for Arch Linux and the AUR",
+    "FirstSubmitted": 1339580942,
+    "ID": 1021953,
+    "Keywords": ["AUR", "haskell", "pacman"],
+    "LastModified": 1642719354,
+    "License": ["GPL3"],
+    "Maintainer": "fosskers",
+    "MakeDepends": ["stack"],
+    "Name": "aura",
+    "NumVotes": 163,
+    "OptDepends": ["bash-completion"],
+    "OutOfDate": null,
+    "PackageBase": "aura",
+    "PackageBaseID": 60019,
+    "Popularity": 1.962224,
+    "URL": "https://github.com/fosskers/aura",
+    "URLPath": "/cgit/aur.git/snapshot/aura.tar.gz",
+    "Version": "3.2.7-1"
+  }
+]

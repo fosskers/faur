@@ -6,7 +6,7 @@ license = "GPL-3.0-or-later"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-sqlx = { version = "0.5", features = ["sqlite", "runtime-tokio-rustls"] }
+serde_json = "1"
 tokio = { version = "1", features = ["full"] }
 warp = "0.3"
 

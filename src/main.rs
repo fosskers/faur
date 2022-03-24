@@ -1,6 +1,9 @@
+mod error;
+
+use error::Error;
 use serde::{Deserialize, Deserializer, Serialize};
-use sqlx::sqlite::SqlitePoolOptions;
-use sqlx::FromRow;
+use std::fs::File;
+use std::io::BufReader;
 use warp::Filter;
 
 #[derive(Deserialize)]
@@ -17,7 +20,8 @@ enum By {
     Dep,
 }
 
-#[derive(FromRow, Serialize)]
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
 struct Package {
     name: String,
 }
@@ -35,12 +39,15 @@ where
     Ok(v)
 }
 
+fn db_init() -> Result<Vec<Package>, Error> {
+    let reader = BufReader::new(File::open("db.json")?);
+    let db = serde_json::from_reader(reader)?;
+    Ok(db)
+}
+
 #[tokio::main]
-async fn main() -> Result<(), sqlx::Error> {
-    let pool = SqlitePoolOptions::new()
-        .max_connections(4)
-        .connect("sqlite::memory")
-        .await?;
+async fn main() -> Result<(), Error> {
+    let db = db_init()?;
 
     let search = warp::get()
         .and(warp::path("packages"))
@@ -53,4 +60,15 @@ async fn main() -> Result<(), sqlx::Error> {
     warp::serve(search).run(([127, 0, 0, 1], 3030)).await;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parseable_database() {
+        let db = db_init();
+        assert!(db.is_ok());
+    }
 }
