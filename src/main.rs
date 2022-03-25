@@ -64,7 +64,7 @@ async fn main() -> Result<(), Error> {
     // The `Box` tricks ensure that the `Index` can actually be passed to the
     // request handlers with a static lifetime, which is a requirement of Warp.
     let db: &'static Vec<Package> = Box::leak(Box::new(db_init()?));
-    let ix = Index::new(&db);
+    let ix = Index::new(db);
 
     let search = warp::get()
         .and(warp::path("packages"))
@@ -74,7 +74,7 @@ async fn main() -> Result<(), Error> {
                 .name
                 .into_iter()
                 .filter_map(|p| ix.by_name.get(p.as_str()))
-                .map(|p| *p)
+                .copied() // Only to deference a `&&`. Doesn't copy Package data.
                 .collect();
 
             warp::reply::json(&ps)
