@@ -156,5 +156,32 @@
     "URL": "https://ares-emu.net/",
     "URLPath": "/cgit/aur.git/snapshot/ares-emu.tar.gz",
     "Version": "127-1"
+  },
+  {
+    "Conflicts": [
+      "citra-git",
+      "citra-qt-git",
+      "citra-canary-bin",
+      "citra-qt-canary-bin",
+      "citra-qt-bin"
+    ],
+    "Depends": ["ffmpeg-compat-57", "libsndio-61-compat", "sdl2"],
+    "Description": "An experimental open-source Nintendo 3DS emulator/debugger",
+    "FirstSubmitted": 1567198040,
+    "ID": 1021470,
+    "Keywords": [],
+    "LastModified": 1642636850,
+    "License": ["GPL2"],
+    "Maintainer": "Sebastian209",
+    "Name": "citra-bin",
+    "NumVotes": 7,
+    "OutOfDate": 1645235649,
+    "PackageBase": "citra-bin",
+    "PackageBaseID": 144707,
+    "Popularity": 0.701638,
+    "Replaces": ["citra-nightly-bin"],
+    "URL": "https://citra-emu.org",
+    "URLPath": "/cgit/aur.git/snapshot/citra-bin.tar.gz",
+    "Version": "1746_20220111_45a4a56-1"
   }
 ]

@@ -22,14 +22,45 @@ enum By {
     Desc,
 }
 
+/// A number of these fields will be missing from the usual AUR RPC responses if
+/// it had no data from them (e.g. "CheckDepends"), but we always return all
+/// fields for increased safety.
 #[derive(Deserialize, Serialize)]
-#[serde(rename_all = "PascalCase")]
+#[serde(rename_all = "PascalCase", deny_unknown_fields)]
 struct Package {
+    #[serde(default)]
+    check_depends: Vec<String>,
+    #[serde(default)]
+    conflicts: Vec<String>,
+    depends: Vec<String>,
     description: String,
+    first_submitted: u64,
+    #[serde(rename = "ID")]
+    id: u64,
+    keywords: Vec<String>,
+    last_modified: u64,
+    license: Vec<String>,
+    maintainer: String,
+    #[serde(default)]
+    make_depends: Vec<String>,
     name: String,
-    /// Missing from the AUR RPC if the package has no explicit "provides".
+    num_votes: u64,
+    #[serde(default)]
+    opt_depends: Vec<String>,
+    out_of_date: Option<u64>,
+    package_base: String,
+    #[serde(rename = "PackageBaseID")]
+    package_base_id: u64,
+    popularity: f64,
     #[serde(default)]
     provides: Vec<String>,
+    #[serde(default)]
+    replaces: Vec<String>,
+    #[serde(rename = "URL")]
+    url: String,
+    #[serde(rename = "URLPath")]
+    url_path: String,
+    version: String,
 }
 
 /// Various fast lookup schemes for the underlying [`Package`] data.
