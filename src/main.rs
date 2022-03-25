@@ -40,7 +40,7 @@ struct Package {
     keywords: Vec<String>,
     last_modified: u64,
     license: Vec<String>,
-    maintainer: String,
+    maintainer: Option<String>,
     #[serde(default)]
     make_depends: Vec<String>,
     name: String,

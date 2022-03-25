@@ -183,5 +183,25 @@
     "URL": "https://citra-emu.org",
     "URLPath": "/cgit/aur.git/snapshot/citra-bin.tar.gz",
     "Version": "1746_20220111_45a4a56-1"
+  },
+  {
+    "Depends": ["hicolor-icon-theme", "java-runtime", "libxtst"],
+    "Description": "A Java mindmapping tool",
+    "FirstSubmitted": 1644081944,
+    "ID": 1031891,
+    "Keywords": [],
+    "LastModified": 1644081944,
+    "License": ["GPL"],
+    "Maintainer": null,
+    "MakeDepends": ["libicns"],
+    "Name": "freemind",
+    "NumVotes": 3,
+    "OutOfDate": null,
+    "PackageBase": "freemind",
+    "PackageBaseID": 175683,
+    "Popularity": 1.846969,
+    "URL": "https://sourceforge.net/projects/freemind",
+    "URLPath": "/cgit/aur.git/snapshot/freemind.tar.gz",
+    "Version": "1.0.1-5"
   }
 ]
