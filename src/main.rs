@@ -61,15 +61,23 @@ fn db_init() -> Result<Vec<Package>, Error> {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let db = db_init()?;
+    // The `Box` tricks ensure that the `Index` can actually be passed to the
+    // request handlers with a static lifetime, which is a requirement of Warp.
+    let db: &'static Vec<Package> = Box::leak(Box::new(db_init()?));
     let ix = Index::new(&db);
 
     let search = warp::get()
         .and(warp::path("packages"))
         .and(warp::query::<Query>())
-        .map(|q: Query| {
-            let msg = format!("You searched for: {:?} (by {:?})", q.name, q.by);
-            warp::reply::json(&msg)
+        .map(move |q: Query| {
+            let ps: Vec<&Package> = q
+                .name
+                .into_iter()
+                .filter_map(|p| ix.by_name.get(p.as_str()))
+                .map(|p| *p)
+                .collect();
+
+            warp::reply::json(&ps)
         });
 
     warp::serve(search).run(([127, 0, 0, 1], 3030)).await;
