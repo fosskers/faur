@@ -2,6 +2,7 @@ mod error;
 
 use error::Error;
 use serde::{Deserialize, Deserializer, Serialize};
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
@@ -10,7 +11,7 @@ use warp::Filter;
 #[derive(Deserialize)]
 struct Query {
     #[serde(deserialize_with = "commas")]
-    name: Vec<String>,
+    names: Vec<String>,
     by: Option<By>,
 }
 
@@ -18,25 +19,42 @@ struct Query {
 #[serde(rename_all = "lowercase")]
 enum By {
     Provides,
-    Dep,
 }
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 struct Package {
     name: String,
+    /// Missing from the AUR RPC if the package has no explicit "provides".
+    #[serde(default)]
+    provides: Vec<String>,
 }
 
 /// Various fast lookup schemes for the underlying [`Package`] data.
 struct Index<'a> {
     by_name: HashMap<&'a str, &'a Package>,
+    by_prov: HashMap<&'a str, Vec<&'a Package>>,
 }
 
 impl<'a> Index<'a> {
     /// Construct a new `Index`.
     fn new(db: &'a [Package]) -> Index<'a> {
         let by_name = db.iter().map(|p| (p.name.as_str(), p)).collect();
-        Index { by_name }
+        let mut by_prov: HashMap<&'a str, Vec<&'a Package>> = HashMap::new();
+
+        for pkg in db.iter() {
+            if pkg.provides.is_empty() {
+                let set = by_prov.entry(pkg.name.as_str()).or_default();
+                set.push(pkg);
+            } else {
+                for prov in pkg.provides.iter() {
+                    let set = by_prov.entry(prov.as_str()).or_default();
+                    set.push(pkg);
+                }
+            }
+        }
+
+        Index { by_name, by_prov }
     }
 }
 
@@ -70,12 +88,21 @@ async fn main() -> Result<(), Error> {
         .and(warp::path("packages"))
         .and(warp::query::<Query>())
         .map(move |q: Query| {
-            let ps: Vec<&Package> = q
-                .name
-                .into_iter()
-                .filter_map(|p| ix.by_name.get(p.as_str()))
-                .copied() // Only to deference a `&&`. Doesn't copy Package data.
-                .collect();
+            let ps: Cow<'_, [&Package]> = match q.by {
+                Some(By::Provides) => match q.names.as_slice() {
+                    [p, ..] => match ix.by_prov.get(p.as_str()) {
+                        Some(ps) => Cow::Borrowed(ps),
+                        None => Cow::Owned(vec![]),
+                    },
+                    [] => Cow::Owned(vec![]),
+                },
+                None => q
+                    .names
+                    .iter()
+                    .filter_map(|p| ix.by_name.get(p.as_str()))
+                    .copied() // Only to deference a `&&`. Doesn't copy Package data.
+                    .collect(),
+            };
 
             warp::reply::json(&ps)
         });
