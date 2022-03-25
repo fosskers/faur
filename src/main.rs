@@ -33,8 +33,10 @@ struct Package {
     #[serde(default)]
     conflicts: Vec<String>,
     depends: Vec<String>,
-    description: String,
+    description: Option<String>,
     first_submitted: u64,
+    #[serde(default)]
+    groups: Vec<String>,
     #[serde(rename = "ID")]
     id: u64,
     keywords: Vec<String>,
@@ -57,7 +59,7 @@ struct Package {
     #[serde(default)]
     replaces: Vec<String>,
     #[serde(rename = "URL")]
-    url: String,
+    url: Option<String>,
     #[serde(rename = "URLPath")]
     url_path: String,
     version: String,
@@ -135,9 +137,13 @@ async fn main() -> Result<(), Error> {
                     .by_name
                     .values()
                     .filter(|p| {
-                        q.names
-                            .iter()
-                            .all(|name| p.name.contains(name) || p.description.contains(name))
+                        q.names.iter().all(|name| {
+                            p.name.contains(name)
+                                || p.description
+                                    .as_deref()
+                                    .map(|d| d.contains(name))
+                                    .unwrap_or(false)
+                        })
                     })
                     .copied()
                     .collect(),
@@ -152,8 +158,8 @@ async fn main() -> Result<(), Error> {
             warp::reply::json(&ps)
         });
 
+    println!("Init complete: {} packages available.", db.len());
     warp::serve(search).run(([127, 0, 0, 1], 3030)).await;
-
     Ok(())
 }
 
