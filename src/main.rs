@@ -18,12 +18,14 @@ struct Query {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
 enum By {
-    Provides,
+    Prov,
+    Desc,
 }
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 struct Package {
+    description: String,
     name: String,
     /// Missing from the AUR RPC if the package has no explicit "provides".
     #[serde(default)]
@@ -44,9 +46,11 @@ impl<'a> Index<'a> {
 
         for pkg in db.iter() {
             if pkg.provides.is_empty() {
+                // Packages always provide themselves, if there is no other explicit listing.
                 let set = by_prov.entry(pkg.name.as_str()).or_default();
                 set.push(pkg);
             } else {
+                // Otherwise, believe what the package self-declares about its "provides".
                 for prov in pkg.provides.iter() {
                     let set = by_prov.entry(prov.as_str()).or_default();
                     set.push(pkg);
@@ -89,13 +93,23 @@ async fn main() -> Result<(), Error> {
         .and(warp::query::<Query>())
         .map(move |q: Query| {
             let ps: Cow<'_, [&Package]> = match q.by {
-                Some(By::Provides) => match q.names.as_slice() {
+                Some(By::Prov) => match q.names.as_slice() {
                     [p, ..] => match ix.by_prov.get(p.as_str()) {
                         Some(ps) => Cow::Borrowed(ps),
                         None => Cow::Owned(vec![]),
                     },
                     [] => Cow::Owned(vec![]),
                 },
+                Some(By::Desc) => ix
+                    .by_name
+                    .values()
+                    .filter(|p| {
+                        q.names
+                            .iter()
+                            .all(|name| p.name.contains(name) || p.description.contains(name))
+                    })
+                    .copied()
+                    .collect(),
                 None => q
                     .names
                     .iter()
