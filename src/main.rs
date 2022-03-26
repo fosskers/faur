@@ -8,6 +8,8 @@ use std::fs::File;
 use std::io::BufReader;
 use warp::Filter;
 
+const DB_FILE: &str = "db.yaml";
+
 #[derive(Deserialize)]
 struct Query {
     #[serde(deserialize_with = "commas")]
@@ -28,40 +30,53 @@ enum By {
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase", deny_unknown_fields)]
 struct Package {
-    #[serde(default)]
+    #[serde(default, rename(deserialize = "cd"))]
     check_depends: Vec<String>,
-    #[serde(default)]
+    #[serde(default, rename(deserialize = "cf"))]
     conflicts: Vec<String>,
+    #[serde(default, rename(deserialize = "dp"))]
     depends: Vec<String>,
+    #[serde(rename(deserialize = "ds"))]
     description: Option<String>,
+    #[serde(rename(deserialize = "fs"))]
     first_submitted: u64,
-    #[serde(default)]
+    #[serde(default, rename(deserialize = "gs"))]
     groups: Vec<String>,
-    #[serde(rename = "ID")]
+    #[serde(rename(deserialize = "id", serialize = "ID"))]
     id: u64,
+    #[serde(default, rename(deserialize = "ks"))]
     keywords: Vec<String>,
+    #[serde(rename(deserialize = "lm"))]
     last_modified: u64,
+    #[serde(default, rename(deserialize = "lc"))]
     license: Vec<String>,
+    #[serde(rename(deserialize = "mt"))]
     maintainer: Option<String>,
-    #[serde(default)]
+    #[serde(default, rename(deserialize = "md"))]
     make_depends: Vec<String>,
+    #[serde(rename(deserialize = "na"))]
     name: String,
+    #[serde(rename(deserialize = "nv"))]
     num_votes: u64,
-    #[serde(default)]
+    #[serde(default, rename(deserialize = "os"))]
     opt_depends: Vec<String>,
+    #[serde(rename(deserialize = "od"))]
     out_of_date: Option<u64>,
+    #[serde(rename(deserialize = "pb"))]
     package_base: String,
-    #[serde(rename = "PackageBaseID")]
+    #[serde(rename(serialize = "PackageBaseID", deserialize = "pi"))]
     package_base_id: u64,
+    #[serde(rename(deserialize = "pl"))]
     popularity: f64,
-    #[serde(default)]
+    #[serde(default, rename(deserialize = "pv"))]
     provides: Vec<String>,
-    #[serde(default)]
+    #[serde(default, rename(deserialize = "rp"))]
     replaces: Vec<String>,
-    #[serde(rename = "URL")]
+    #[serde(rename(serialize = "URL", deserialize = "ul"))]
     url: Option<String>,
-    #[serde(rename = "URLPath")]
+    #[serde(rename(serialize = "URLPath", deserialize = "up"))]
     url_path: String,
+    #[serde(rename(deserialize = "vr"))]
     version: String,
 }
 
@@ -109,13 +124,15 @@ where
 }
 
 fn db_init() -> Result<Vec<Package>, Error> {
-    let reader = BufReader::new(File::open("db.json")?);
-    let db = serde_json::from_reader(reader)?;
+    let reader = BufReader::new(File::open(DB_FILE)?);
+    let db = serde_yaml::from_reader(reader)?;
     Ok(db)
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    println!("Initializing package database.");
+
     // The `Box` tricks ensure that the `Index` can actually be passed to the
     // request handlers with a static lifetime, which is a requirement of Warp.
     let db: &'static Vec<Package> = Box::leak(Box::new(db_init()?));
