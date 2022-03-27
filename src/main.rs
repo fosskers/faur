@@ -131,6 +131,13 @@ fn db_init() -> Result<Vec<Package>, Error> {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    // Heroku demands that we listen on the internal port that they assign to
+    // the process.
+    let port = std::env::var("PORT")
+        .ok()
+        .and_then(|port| port.parse().ok())
+        .unwrap_or(3030);
+
     println!("Initializing package database.");
 
     // The `Box` tricks ensure that the `Index` can actually be passed to the
@@ -176,7 +183,8 @@ async fn main() -> Result<(), Error> {
         });
 
     println!("Init complete: {} packages available.", db.len());
-    warp::serve(search).run(([127, 0, 0, 1], 3030)).await;
+    println!("Listening on Port {}", port);
+    warp::serve(search).run(([127, 0, 0, 1], port)).await;
     Ok(())
 }
 
