@@ -7,6 +7,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
+use std::path::PathBuf;
 use warp::Filter;
 
 const DB_FILE: &str = "db.yaml";
@@ -16,8 +17,16 @@ const DB_FILE: &str = "db.yaml";
 #[clap(propagate_version = true, disable_help_subcommand = true)]
 pub(crate) struct Args {
     /// Port to listen on.
-    #[clap(long, default_value_t = 80)]
+    #[clap(long, default_value_t = 80, display_order = 1)]
     pub(crate) port: u16,
+
+    /// Path to a certificate for HTTS.
+    #[clap(long, display_order = 1)]
+    pub(crate) cert: Option<PathBuf>,
+
+    /// Path to the certificate's private key.
+    #[clap(long, display_order = 1)]
+    pub(crate) key: Option<PathBuf>,
 }
 
 #[derive(Deserialize)]
@@ -189,7 +198,19 @@ async fn main() -> Result<(), Error> {
 
     println!("Init complete: {} packages available.", db.len());
     println!("Listening on Port {}", args.port);
-    warp::serve(search).run(([0, 0, 0, 0], args.port)).await;
+
+    match (args.cert, args.key) {
+        (Some(c), Some(k)) => {
+            warp::serve(search)
+                .tls()
+                .cert_path(c)
+                .key_path(k)
+                .run(([0, 0, 0, 0], args.port))
+                .await
+        }
+        _ => warp::serve(search).run(([0, 0, 0, 0], args.port)).await,
+    }
+
     Ok(())
 }
 
