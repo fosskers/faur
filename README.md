@@ -16,6 +16,8 @@ A `faur` instance is a mirror of all package data on the AUR. `faur` is...
   - < 200 lines of Rust.
   - 3mb release binary.
 
+For instance, visit: <https://faur.fosskers.ca/packages?names=aura&by=prov>
+
 ### API
 
 There is only a single endpoint: `packages`.
