@@ -189,7 +189,7 @@ async fn main() -> Result<(), Error> {
 
     println!("Init complete: {} packages available.", db.len());
     println!("Listening on Port {}", args.port);
-    warp::serve(search).run(([127, 0, 0, 1], args.port)).await;
+    warp::serve(search).run(([0, 0, 0, 0], args.port)).await;
     Ok(())
 }
 
