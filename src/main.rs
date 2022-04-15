@@ -197,18 +197,21 @@ async fn main() -> Result<(), Error> {
         });
 
     println!("Init complete: {} packages available.", db.len());
-    println!("Listening on Port {}", args.port);
 
     match (args.cert, args.key) {
         (Some(c), Some(k)) => {
+            println!("Listening on Port 443 in TLS mode.");
             warp::serve(search)
                 .tls()
                 .cert_path(c)
                 .key_path(k)
-                .run(([0, 0, 0, 0], args.port))
+                .run(([0, 0, 0, 0], 443))
                 .await
         }
-        _ => warp::serve(search).run(([0, 0, 0, 0], args.port)).await,
+        _ => {
+            println!("Listening on Port {}.", args.port);
+            warp::serve(search).run(([0, 0, 0, 0], args.port)).await
+        }
     }
 
     Ok(())
