@@ -1,5 +1,6 @@
 mod error;
 
+use clap::Parser;
 use error::Error;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::borrow::Cow;
@@ -9,6 +10,15 @@ use std::io::BufReader;
 use warp::Filter;
 
 const DB_FILE: &str = "db.yaml";
+
+#[derive(Parser)]
+#[clap(author, version, about)]
+#[clap(propagate_version = true, disable_help_subcommand = true)]
+pub(crate) struct Args {
+    /// Port to listen on.
+    #[clap(long, default_value_t = 80)]
+    pub(crate) port: u16,
+}
 
 #[derive(Deserialize)]
 struct Query {
@@ -131,12 +141,7 @@ fn db_init() -> Result<Vec<Package>, Error> {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    // Heroku demands that we listen on the internal port that they assign to
-    // the process.
-    let port = std::env::var("PORT")
-        .ok()
-        .and_then(|port| port.parse().ok())
-        .unwrap_or(3030);
+    let args = Args::parse();
 
     println!("Initializing package database.");
 
@@ -183,8 +188,8 @@ async fn main() -> Result<(), Error> {
         });
 
     println!("Init complete: {} packages available.", db.len());
-    println!("Listening on Port {}", port);
-    warp::serve(search).run(([127, 0, 0, 1], port)).await;
+    println!("Listening on Port {}", args.port);
+    warp::serve(search).run(([127, 0, 0, 1], args.port)).await;
     Ok(())
 }
 
