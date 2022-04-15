@@ -20,11 +20,11 @@ pub(crate) struct Args {
     #[clap(long, default_value_t = 80, display_order = 1)]
     pub(crate) port: u16,
 
-    /// Path to a certificate for HTTS.
+    /// Path to a TLS certificate.
     #[clap(long, display_order = 1)]
     pub(crate) cert: Option<PathBuf>,
 
-    /// Path to the certificate's private key.
+    /// Path to the TLS certificate's private key.
     #[clap(long, display_order = 1)]
     pub(crate) key: Option<PathBuf>,
 }
