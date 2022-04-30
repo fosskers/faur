@@ -124,37 +124,39 @@ impl<'a> Index<'a> {
         let mut by_prov: HashMap<&'a str, Vec<&'a Package>> = HashMap::new();
         let mut by_word: HashMap<String, Vec<&'a Package>> = HashMap::new();
 
-        for pkg in db.iter() {
-            if pkg.provides.is_empty() {
+        for pckg in db.iter() {
+            if pckg.provides.is_empty() {
                 // Packages always provide themselves, if there is no other explicit listing.
-                let set = by_prov.entry(pkg.name.as_str()).or_default();
-                set.push(pkg);
+                let set = by_prov.entry(pckg.name.as_str()).or_default();
+                set.push(pckg);
             } else {
                 // Otherwise, believe what the package self-declares about its "provides".
-                for prov in pkg.provides.iter() {
+                for prov in pckg.provides.iter() {
                     let set = by_prov.entry(prov.as_str()).or_default();
-                    set.push(pkg);
+                    set.push(pckg);
                 }
             }
 
-            // Associate a `Package` with each word in its description. This
-            // allows O(logn) description searches.
-            if let Some(desc) = pkg.description.as_deref() {
-                desc.trim()
-                    .split_ascii_whitespace()
-                    .map(|s| s.trim_start_matches(['(', '"', '*']))
-                    .map(|s| s.trim_end_matches(['.', ',', '!', '?', ':', ')', '"', ';', '*']))
-                    .map(|s| s.trim_end_matches("'s"))
-                    .filter(|s| s.len() > 2)
-                    .map(|s| s.to_ascii_lowercase()) // Allocates a heap String!
-                    .collect::<HashSet<_>>()
-                    .into_iter()
-                    .filter(|word| IGNORES.contains(&word.as_str()).not())
-                    .for_each(|word| {
-                        let entry = by_word.entry(word).or_default();
-                        entry.push(&pkg);
-                    })
-            }
+            // Associate a `Package` with each word in its description and name.
+            // This allows O(logn) description searches.
+            pckg.description
+                .as_deref()
+                .unwrap_or("")
+                .trim()
+                .split_ascii_whitespace()
+                .map(|s| s.trim_start_matches(['(', '"', '*']))
+                .map(|s| s.trim_end_matches(['.', ',', '!', '?', ':', ')', '"', ';', '*']))
+                .map(|s| s.trim_end_matches("'s"))
+                .chain(pckg.name.split(['-', '_'])) // Sneak the name in there too.
+                .filter(|s| s.len() > 2)
+                .map(|s| s.to_ascii_lowercase()) // Allocates a heap String!
+                .collect::<HashSet<_>>() // Only consider unique terms.
+                .into_iter()
+                .filter(|word| IGNORES.contains(&word.as_str()).not())
+                .for_each(|word| {
+                    let entry = by_word.entry(word).or_default();
+                    entry.push(&pckg);
+                });
         }
 
         Index {
@@ -227,20 +229,23 @@ async fn main() -> Result<(), Error> {
                     },
                     [] => Cow::Owned(vec![]),
                 },
-                Some(By::Desc) => ix
-                    .by_name
-                    .values()
-                    .filter(|p| {
-                        q.names.iter().all(|name| {
-                            p.name.contains(name)
-                                || p.description
-                                    .as_deref()
-                                    .map(|d| d.contains(name))
-                                    .unwrap_or(false)
-                        })
-                    })
-                    .copied()
-                    .collect(),
+                Some(By::Desc) => {
+                    todo!()
+                }
+                // Some(By::Desc) => ix
+                //     .by_name
+                //     .values()
+                //     .filter(|p| {
+                //         q.names.iter().all(|name| {
+                //             p.name.contains(name)
+                //                 || p.description
+                //                     .as_deref()
+                //                     .map(|d| d.contains(name))
+                //                     .unwrap_or(false)
+                //         })
+                //     })
+                //     .copied()
+                //     .collect(),
                 None => q
                     .names
                     .iter()
