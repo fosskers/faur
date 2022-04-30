@@ -262,7 +262,6 @@ async fn main() -> Result<(), Error> {
 
     match (args.cert, args.key) {
         (Some(c), Some(k)) => {
-            info!("Listening on Port 443 in TLS mode.");
             warp::serve(search)
                 .tls()
                 .cert_path(c)
@@ -270,10 +269,7 @@ async fn main() -> Result<(), Error> {
                 .run(([0, 0, 0, 0], 443))
                 .await
         }
-        _ => {
-            info!("Listening on Port {}.", args.port);
-            warp::serve(search).run(([0, 0, 0, 0], args.port)).await
-        }
+        _ => warp::serve(search).run(([0, 0, 0, 0], args.port)).await,
     }
 
     Ok(())
