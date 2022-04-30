@@ -7,10 +7,14 @@ use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufReader;
+use std::ops::Not;
 use std::path::PathBuf;
 use warp::Filter;
 
 const DB_FILE: &str = "db.yaml";
+
+/// Description words to ignore.
+const IGNORES: &[&str] = &["for", "and", "the", "with", "from", "that", "your"];
 
 #[derive(Debug, FromVariants)]
 enum Error {
@@ -145,6 +149,7 @@ impl<'a> Index<'a> {
                     .map(|s| s.to_ascii_lowercase()) // Allocates a heap String!
                     .collect::<HashSet<_>>()
                     .into_iter()
+                    .filter(|word| IGNORES.contains(&word.as_str()).not())
                     .for_each(|word| {
                         let entry = by_word.entry(word).or_default();
                         entry.push(&pkg);
@@ -198,7 +203,17 @@ async fn main() -> Result<(), Error> {
     info!("Database read. Forming Index...");
     let ix = Index::new(db);
     info!("Index formed.");
-    info!("{} unique description words.", ix.by_word.len());
+
+    // let mut fooq: Vec<_> = ix
+    //     .by_word
+    //     .iter()
+    //     .map(|(word, set)| (word.as_str(), set.len()))
+    //     .collect();
+    // fooq.sort_by_key(|(_, freq)| *freq);
+    // fooq.reverse();
+    // fooq.into_iter()
+    //     .take(40)
+    //     .for_each(|(word, freq)| println!("{}: {}", word, freq));
 
     let search = warp::get()
         .and(warp::path("packages"))
@@ -238,6 +253,7 @@ async fn main() -> Result<(), Error> {
         });
 
     info!("Init complete: {} packages available.", db.len());
+    info!("{} unique description words.", ix.by_word.len());
 
     match (args.cert, args.key) {
         (Some(c), Some(k)) => {
