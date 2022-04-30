@@ -4,7 +4,7 @@ use log::{info, LevelFilter};
 use serde::{Deserialize, Deserializer, Serialize};
 use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
@@ -110,6 +110,7 @@ struct Package {
 struct Index<'a> {
     by_name: HashMap<&'a str, &'a Package>,
     by_prov: HashMap<&'a str, Vec<&'a Package>>,
+    by_word: HashMap<String, Vec<&'a Package>>,
 }
 
 impl<'a> Index<'a> {
@@ -117,6 +118,7 @@ impl<'a> Index<'a> {
     fn new(db: &'a [Package]) -> Index<'a> {
         let by_name = db.iter().map(|p| (p.name.as_str(), p)).collect();
         let mut by_prov: HashMap<&'a str, Vec<&'a Package>> = HashMap::new();
+        let mut by_word: HashMap<String, Vec<&'a Package>> = HashMap::new();
 
         for pkg in db.iter() {
             if pkg.provides.is_empty() {
@@ -130,9 +132,31 @@ impl<'a> Index<'a> {
                     set.push(pkg);
                 }
             }
+
+            // Associate a `Package` with each word in its description. This
+            // allows O(logn) description searches.
+            if let Some(desc) = pkg.description.as_deref() {
+                desc.trim()
+                    .split_ascii_whitespace()
+                    .map(|s| s.trim_start_matches(['(', '"', '*']))
+                    .map(|s| s.trim_end_matches(['.', ',', '!', '?', ':', ')', '"', ';', '*']))
+                    .map(|s| s.trim_end_matches("'s"))
+                    .filter(|s| s.len() > 2)
+                    .map(|s| s.to_ascii_lowercase()) // Allocates a heap String!
+                    .collect::<HashSet<_>>()
+                    .into_iter()
+                    .for_each(|word| {
+                        let entry = by_word.entry(word).or_default();
+                        entry.push(&pkg);
+                    })
+            }
         }
 
-        Index { by_name, by_prov }
+        Index {
+            by_name,
+            by_prov,
+            by_word,
+        }
     }
 }
 
@@ -174,6 +198,7 @@ async fn main() -> Result<(), Error> {
     info!("Database read. Forming Index...");
     let ix = Index::new(db);
     info!("Index formed.");
+    info!("{} unique description words.", ix.by_word.len());
 
     let search = warp::get()
         .and(warp::path("packages"))
