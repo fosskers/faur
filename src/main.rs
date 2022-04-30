@@ -1,8 +1,8 @@
-mod error;
-
 use clap::Parser;
-use error::Error;
+use from_variants::FromVariants;
+use log::{info, LevelFilter};
 use serde::{Deserialize, Deserializer, Serialize};
+use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs::File;
@@ -12,21 +12,28 @@ use warp::Filter;
 
 const DB_FILE: &str = "db.yaml";
 
+#[derive(Debug, FromVariants)]
+enum Error {
+    Io(std::io::Error),
+    Yaml(serde_yaml::Error),
+    Log(log::SetLoggerError),
+}
+
 #[derive(Parser)]
 #[clap(author, version, about)]
 #[clap(propagate_version = true, disable_help_subcommand = true)]
-pub(crate) struct Args {
+struct Args {
     /// Port to listen on.
     #[clap(long, default_value_t = 80, display_order = 1)]
-    pub(crate) port: u16,
+    port: u16,
 
     /// Path to a TLS certificate.
     #[clap(long, display_order = 1)]
-    pub(crate) cert: Option<PathBuf>,
+    cert: Option<PathBuf>,
 
     /// Path to the TLS certificate's private key.
     #[clap(long, display_order = 1)]
-    pub(crate) key: Option<PathBuf>,
+    key: Option<PathBuf>,
 }
 
 #[derive(Deserialize)]
@@ -152,12 +159,21 @@ fn db_init() -> Result<Vec<Package>, Error> {
 async fn main() -> Result<(), Error> {
     let args = Args::parse();
 
-    println!("Initializing package database.");
+    TermLogger::init(
+        LevelFilter::Info,
+        Config::default(),
+        TerminalMode::Mixed,
+        ColorChoice::Auto,
+    )?;
+
+    info!("Initializing package database.");
 
     // The `Box` tricks ensure that the `Index` can actually be passed to the
     // request handlers with a static lifetime, which is a requirement of Warp.
     let db: &'static Vec<Package> = Box::leak(Box::new(db_init()?));
+    info!("Database read. Forming Index...");
     let ix = Index::new(db);
+    info!("Index formed.");
 
     let search = warp::get()
         .and(warp::path("packages"))
@@ -196,11 +212,11 @@ async fn main() -> Result<(), Error> {
             warp::reply::json(&ps)
         });
 
-    println!("Init complete: {} packages available.", db.len());
+    info!("Init complete: {} packages available.", db.len());
 
     match (args.cert, args.key) {
         (Some(c), Some(k)) => {
-            println!("Listening on Port 443 in TLS mode.");
+            info!("Listening on Port 443 in TLS mode.");
             warp::serve(search)
                 .tls()
                 .cert_path(c)
@@ -209,7 +225,7 @@ async fn main() -> Result<(), Error> {
                 .await
         }
         _ => {
-            println!("Listening on Port {}.", args.port);
+            info!("Listening on Port {}.", args.port);
             warp::serve(search).run(([0, 0, 0, 0], args.port)).await
         }
     }
