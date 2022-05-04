@@ -6,6 +6,7 @@ use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
+use std::hash::Hash;
 use std::io::BufReader;
 use std::ops::Not;
 use std::path::PathBuf;
@@ -15,6 +16,23 @@ const DB_FILE: &str = "db.yaml";
 
 /// Description words to ignore.
 const IGNORES: &[&str] = &["for", "and", "the", "with", "from", "that", "your"];
+
+trait Apply {
+    fn apply<F, U>(self, f: F) -> U
+    where
+        F: FnOnce(Self) -> U,
+        Self: Sized;
+}
+
+impl<T> Apply for T {
+    fn apply<F, U>(self, f: F) -> U
+    where
+        F: FnOnce(Self) -> U,
+        Self: Sized,
+    {
+        f(self)
+    }
+}
 
 #[derive(Debug, FromVariants)]
 enum Error {
@@ -110,11 +128,25 @@ struct Package {
     version: String,
 }
 
+impl PartialEq for Package {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Eq for Package {}
+
+impl Hash for Package {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
+}
+
 /// Various fast lookup schemes for the underlying [`Package`] data.
 struct Index<'a> {
     by_name: HashMap<&'a str, &'a Package>,
     by_prov: HashMap<&'a str, Vec<&'a Package>>,
-    by_word: HashMap<String, Vec<&'a Package>>,
+    by_word: HashMap<String, HashSet<&'a Package>>,
 }
 
 impl<'a> Index<'a> {
@@ -122,7 +154,7 @@ impl<'a> Index<'a> {
     fn new(db: &'a [Package]) -> Index<'a> {
         let by_name = db.iter().map(|p| (p.name.as_str(), p)).collect();
         let mut by_prov: HashMap<&'a str, Vec<&'a Package>> = HashMap::new();
-        let mut by_word: HashMap<String, Vec<&'a Package>> = HashMap::new();
+        let mut by_word: HashMap<String, HashSet<&'a Package>> = HashMap::new();
 
         for pckg in db.iter() {
             if pckg.provides.is_empty() {
@@ -150,12 +182,11 @@ impl<'a> Index<'a> {
                 .chain(pckg.name.split(['-', '_'])) // Sneak the name in there too.
                 .filter(|s| s.len() > 2)
                 .map(|s| s.to_ascii_lowercase()) // Allocates a heap String!
-                .collect::<HashSet<_>>() // Only consider unique terms.
                 .into_iter()
                 .filter(|word| IGNORES.contains(&word.as_str()).not())
                 .for_each(|word| {
                     let entry = by_word.entry(word).or_default();
-                    entry.push(&pckg);
+                    entry.insert(&pckg);
                 });
         }
 
@@ -175,9 +206,29 @@ where
     //
     // Potentially avoid all the allocating by dropping down to `hyper` and
     // using data borrowed from the deserializer entirely.
+    //
+    // For now, deserialize to a `str`!
     let s = String::deserialize(deserializer)?;
     let v = s.split(',').map(|s| s.to_string()).collect();
     Ok(v)
+}
+
+fn intersections<'a, I, T>(iter: I) -> HashSet<&'a T>
+where
+    I: Iterator<Item = &'a HashSet<&'a T>>,
+    T: Eq + Hash + 'a,
+{
+    let mut sets: Vec<_> = iter.collect();
+    sets.sort_by(|a, b| b.len().cmp(&a.len()));
+
+    match sets.pop() {
+        None => HashSet::new(),
+        Some(smallest) => {
+            let mut res = smallest.clone();
+            sets.iter().for_each(|s| res.retain(|t| s.contains(t)));
+            res
+        }
+    }
 }
 
 fn db_init() -> Result<Vec<Package>, Error> {
@@ -230,6 +281,13 @@ async fn main() -> Result<(), Error> {
                     [] => Cow::Owned(vec![]),
                 },
                 Some(By::Desc) => {
+                    // q.names
+                    // .into_iter()
+                    // .filter_map(|word| ix.by_word.get(&word))
+                    // .apply(intersections);
+
+                    // TODO Need to write a generalised set intersection lib.
+
                     todo!()
                 }
                 // Some(By::Desc) => ix
