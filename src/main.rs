@@ -206,9 +206,7 @@ where
     //
     // Potentially avoid all the allocating by dropping down to `hyper` and
     // using data borrowed from the deserializer entirely.
-    //
-    // For now, deserialize to a `str`!
-    let s = String::deserialize(deserializer)?;
+    let s: &'de str = Deserialize::deserialize(deserializer)?;
     let v = s.split(',').map(|s| s.to_string()).collect();
     Ok(v)
 }
