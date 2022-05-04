@@ -36,3 +36,7 @@ Where multiple `TOKENS` are accepted, these are separated by commas, as in:
 ```
 packages?names=spotify,teams,zoom
 ```
+
+**Caveat:** `by=desc` is term-based, not regex based. This is for performance
+reasons. So, `packages?names=aura&by=desc` will match on `aura-bin` but not on
+`auralcap`.
