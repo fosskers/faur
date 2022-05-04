@@ -256,6 +256,8 @@ async fn main() -> Result<(), Error> {
     info!("Database read. Forming Index...");
     let ix = Index::new(db);
     info!("Index formed.");
+    info!("Init complete: {} packages available.", db.len());
+    info!("{} unique description words.", ix.by_word.len());
 
     // let mut fooq: Vec<_> = ix
     //     .by_word
@@ -280,30 +282,13 @@ async fn main() -> Result<(), Error> {
                     },
                     [] => Cow::Owned(vec![]),
                 },
-                Some(By::Desc) => {
-                    // q.names
-                    // .into_iter()
-                    // .filter_map(|word| ix.by_word.get(&word))
-                    // .apply(intersections);
-
-                    // TODO Need to write a generalised set intersection lib.
-
-                    todo!()
-                }
-                // Some(By::Desc) => ix
-                //     .by_name
-                //     .values()
-                //     .filter(|p| {
-                //         q.names.iter().all(|name| {
-                //             p.name.contains(name)
-                //                 || p.description
-                //                     .as_deref()
-                //                     .map(|d| d.contains(name))
-                //                     .unwrap_or(false)
-                //         })
-                //     })
-                //     .copied()
-                //     .collect(),
+                Some(By::Desc) => q
+                    .names
+                    .into_iter()
+                    .filter_map(|word| ix.by_word.get(&word))
+                    .apply(intersections)
+                    .into_iter()
+                    .collect(),
                 None => q
                     .names
                     .iter()
@@ -314,9 +299,6 @@ async fn main() -> Result<(), Error> {
 
             warp::reply::json(&ps)
         });
-
-    info!("Init complete: {} packages available.", db.len());
-    info!("{} unique description words.", ix.by_word.len());
 
     match (args.cert, args.key) {
         (Some(c), Some(k)) => {
