@@ -211,10 +211,10 @@ where
     Ok(v)
 }
 
-fn intersections<'a, I, T>(iter: I) -> HashSet<&'a T>
+fn intersections<'a, 'b: 'a, I, T>(iter: I) -> HashSet<&'b T>
 where
-    I: Iterator<Item = &'a HashSet<&'a T>>,
-    T: Eq + Hash + 'a,
+    I: Iterator<Item = &'a HashSet<&'b T>>,
+    T: Eq + Hash,
 {
     let mut sets: Vec<_> = iter.collect();
     sets.sort_by(|a, b| b.len().cmp(&a.len()));
@@ -280,13 +280,22 @@ async fn main() -> Result<(), Error> {
                     },
                     [] => Cow::Owned(vec![]),
                 },
-                Some(By::Desc) => q
-                    .names
-                    .into_iter()
-                    .filter_map(|word| ix.by_word.get(&word))
-                    .apply(intersections)
-                    .into_iter()
-                    .collect(),
+                Some(By::Desc) => {
+                    let by_name: HashSet<&Package> = q
+                        .names
+                        .iter()
+                        .filter_map(|word| ix.by_name.get(word.as_str()))
+                        .copied()
+                        .collect();
+
+                    q.names
+                        .into_iter()
+                        .filter_map(|word| ix.by_word.get(&word))
+                        .chain(std::iter::once(&by_name))
+                        .apply(intersections)
+                        .into_iter()
+                        .collect()
+                }
                 None => q
                     .names
                     .iter()
