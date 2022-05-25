@@ -273,13 +273,12 @@ async fn main() -> Result<(), Error> {
         .and(warp::query::<Query>())
         .map(move |q: Query| {
             let ps: Cow<'_, [&Package]> = match q.by {
-                Some(By::Prov) => match q.names.as_slice() {
-                    [p, ..] => match ix.by_prov.get(p.as_str()) {
-                        Some(ps) => Cow::Borrowed(ps),
-                        None => Cow::Owned(vec![]),
-                    },
-                    [] => Cow::Owned(vec![]),
-                },
+                Some(By::Prov) => q
+                    .names
+                    .first()
+                    .and_then(|p| ix.by_prov.get(p.as_str()))
+                    .map(Cow::Borrowed)
+                    .unwrap_or_default(),
                 Some(By::Desc) => {
                     let by_name: HashSet<&Package> = q
                         .names
