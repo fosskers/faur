@@ -277,7 +277,7 @@ async fn main() -> Result<(), Error> {
                     .names
                     .first()
                     .and_then(|p| ix.by_prov.get(p.as_str()))
-                    .map(Cow::Borrowed)
+                    .map(|v| Cow::Borrowed(v.as_slice()))
                     .unwrap_or_default(),
                 Some(By::Desc) => {
                     let by_name: HashSet<&Package> = q
