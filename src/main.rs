@@ -280,20 +280,23 @@ async fn main() -> Result<(), Error> {
                     .map(|v| Cow::Borrowed(v.as_slice()))
                     .unwrap_or_default(),
                 Some(By::Desc) => {
-                    let by_name: HashSet<&Package> = q
+                    let ps: Vec<_> = q
                         .names
                         .iter()
-                        .filter_map(|word| ix.by_name.get(word.as_str()))
-                        .copied()
-                        .collect();
-
-                    q.names
-                        .into_iter()
-                        .filter_map(|word| ix.by_word.get(&word))
-                        .chain(std::iter::once(&by_name))
+                        .filter_map(|word| ix.by_word.get(word))
                         .apply(intersections)
                         .into_iter()
-                        .collect()
+                        .collect();
+
+                    if ps.is_empty() {
+                        q.names
+                            .iter()
+                            .filter_map(|word| ix.by_name.get(word.as_str()))
+                            .copied()
+                            .collect()
+                    } else {
+                        Cow::Owned(ps)
+                    }
                 }
                 None => q
                     .names
