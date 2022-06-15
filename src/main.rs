@@ -56,6 +56,10 @@ struct Args {
     /// Path to the TLS certificate's private key.
     #[clap(long, display_order = 1)]
     key: Option<PathBuf>,
+
+    /// Run on localhost (127.0.0.1).
+    #[clap(long, display_order = 1)]
+    local: bool,
 }
 
 #[derive(Deserialize)]
@@ -299,16 +303,22 @@ async fn main() -> Result<(), Error> {
             warp::reply::json(&ps)
         });
 
+    let ip = if args.local {
+        [127, 0, 0, 1]
+    } else {
+        [0, 0, 0, 0]
+    };
+
     match (args.cert, args.key) {
         (Some(c), Some(k)) => {
             warp::serve(search)
                 .tls()
                 .cert_path(c)
                 .key_path(k)
-                .run(([0, 0, 0, 0], 443))
+                .run((ip, 443))
                 .await
         }
-        _ => warp::serve(search).run(([0, 0, 0, 0], args.port)).await,
+        _ => warp::serve(search).run((ip, args.port)).await,
     }
 
     Ok(())
