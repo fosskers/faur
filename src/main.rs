@@ -12,7 +12,7 @@ use std::ops::Not;
 use std::path::PathBuf;
 use warp::Filter;
 
-const DB_FILE: &str = "db.yaml";
+const DB_FILE: &str = "packages-meta-ext-v1.json";
 
 /// Description words to ignore.
 const IGNORES: &[&str] = &["for", "and", "the", "with", "from", "that", "your"];
@@ -37,7 +37,7 @@ impl<T> Apply for T {
 #[derive(Debug, FromVariants)]
 enum Error {
     Io(std::io::Error),
-    Yaml(serde_yaml::Error),
+    Json(serde_json::Error),
     Log(log::SetLoggerError),
 }
 
@@ -78,53 +78,43 @@ enum By {
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase", deny_unknown_fields)]
 struct Package {
-    #[serde(default, rename(deserialize = "cd"))]
+    #[serde(default)]
     check_depends: Vec<String>,
-    #[serde(default, rename(deserialize = "cf"))]
+    #[serde(default)]
     conflicts: Vec<String>,
-    #[serde(default, rename(deserialize = "dp"))]
+    #[serde(default)]
     depends: Vec<String>,
-    #[serde(rename(deserialize = "ds"))]
     description: Option<String>,
-    #[serde(rename(deserialize = "fs"))]
     first_submitted: u64,
-    #[serde(default, rename(deserialize = "gs"))]
+    #[serde(default)]
     groups: Vec<String>,
-    #[serde(rename(deserialize = "id", serialize = "ID"))]
+    #[serde(rename = "ID")]
     id: u64,
-    #[serde(default, rename(deserialize = "ks"))]
+    #[serde(default)]
     keywords: Vec<String>,
-    #[serde(rename(deserialize = "lm"))]
     last_modified: u64,
-    #[serde(default, rename(deserialize = "lc"))]
+    #[serde(default)]
     license: Vec<String>,
-    #[serde(rename(deserialize = "mt"))]
     maintainer: Option<String>,
-    #[serde(default, rename(deserialize = "md"))]
+    #[serde(default)]
     make_depends: Vec<String>,
-    #[serde(rename(deserialize = "na"))]
     name: String,
-    #[serde(rename(deserialize = "nv"))]
     num_votes: u64,
-    #[serde(default, rename(deserialize = "os"))]
+    #[serde(default)]
     opt_depends: Vec<String>,
-    #[serde(rename(deserialize = "od"))]
     out_of_date: Option<u64>,
-    #[serde(rename(deserialize = "pb"))]
     package_base: String,
-    #[serde(rename(serialize = "PackageBaseID", deserialize = "pi"))]
+    #[serde(rename = "PackageBaseID")]
     package_base_id: u64,
-    #[serde(rename(deserialize = "pl"))]
     popularity: f64,
-    #[serde(default, rename(deserialize = "pv"))]
+    #[serde(default)]
     provides: Vec<String>,
-    #[serde(default, rename(deserialize = "rp"))]
+    #[serde(default)]
     replaces: Vec<String>,
-    #[serde(rename(serialize = "URL", deserialize = "ul"))]
+    #[serde(rename = "URL")]
     url: Option<String>,
-    #[serde(rename(serialize = "URLPath", deserialize = "up"))]
+    #[serde(rename = "URLPath")]
     url_path: String,
-    #[serde(rename(deserialize = "vr"))]
     version: String,
 }
 
@@ -231,7 +221,7 @@ where
 
 fn db_init() -> Result<Vec<Package>, Error> {
     let reader = BufReader::new(File::open(DB_FILE)?);
-    let db = serde_yaml::from_reader(reader)?;
+    let db = serde_json::from_reader(reader)?;
     Ok(db)
 }
 
