@@ -13,8 +13,9 @@ A `faur` instance is a mirror of all package data on the AUR. `faur` is...
   - Searching by "provides".
   - Searching by multiple terms at once (has "AND" semantics).
 - **Small**
-  - < 200 lines of Rust.
+  - ~300 lines of Rust.
   - 3mb release binary.
+  - No external database or other infrastructure required.
 
 For instance, visit:
 
@@ -40,3 +41,21 @@ packages?names=spotify,teams,zoom
 **Caveat:** `by=desc` is term-based, not regex based. This is for performance
 reasons. So, `packages?names=aura&by=desc` will match on `aura-bin` but not on
 `auralcap`.
+
+### Running a `faur` Instance
+
+Running a personal `faur` instance is simple. First, you'll need package data.
+From the top-level of the project repo:
+
+```sh
+wget https://aur.archlinux.org/packages-meta-ext-v1.json.gz
+gzip -d packages-meta-ext-v1.json.gz
+```
+
+Then simply:
+
+```sh
+cargo run --release -- --local --port=8080
+```
+
+This will run a local `faur` server on http://127.0.0.1:8080 .
