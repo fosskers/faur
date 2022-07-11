@@ -60,6 +60,10 @@ struct Args {
     /// Run on localhost (127.0.0.1).
     #[clap(long, display_order = 1)]
     local: bool,
+
+    /// Path to the database JSON file.
+    #[clap(long, display_order = 1)]
+    db: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -223,8 +227,9 @@ where
     }
 }
 
-fn db_init() -> Result<Vec<Package>, Error> {
-    let reader = BufReader::new(File::open(DB_FILE)?);
+fn db_init(db_path: Option<&str>) -> Result<Vec<Package>, Error> {
+    let path = db_path.unwrap_or(DB_FILE);
+    let reader = BufReader::new(File::open(path)?);
     let db = serde_json::from_reader(reader)?;
     Ok(db)
 }
@@ -244,7 +249,7 @@ async fn main() -> Result<(), Error> {
 
     // The `Box` tricks ensure that the `Index` can actually be passed to the
     // request handlers with a static lifetime, which is a requirement of Warp.
-    let db: &'static Vec<Package> = Box::leak(Box::new(db_init()?));
+    let db: &'static Vec<Package> = Box::leak(Box::new(db_init(args.db.as_deref())?));
     info!("Database read. Forming Index...");
     let ix = Index::new(db);
     info!("Index formed.");
@@ -330,7 +335,7 @@ mod tests {
 
     #[test]
     fn parseable_database() {
-        let db = db_init();
+        let db = db_init(None);
         assert!(db.is_ok());
     }
 }
