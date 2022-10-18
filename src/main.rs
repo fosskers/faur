@@ -1,5 +1,8 @@
+mod error;
+mod util;
+
 use clap::Parser;
-use from_variants::FromVariants;
+use error::Error;
 use log::{info, LevelFilter};
 use serde::{Deserialize, Deserializer, Serialize};
 use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
@@ -10,36 +13,13 @@ use std::hash::Hash;
 use std::io::BufReader;
 use std::ops::Not;
 use std::path::PathBuf;
+use util::Apply;
 use warp::Filter;
 
 const DB_FILE: &str = "packages-meta-ext-v1.json";
 
 /// Description words to ignore.
 const IGNORES: &[&str] = &["for", "and", "the", "with", "from", "that", "your"];
-
-trait Apply {
-    fn apply<F, U>(self, f: F) -> U
-    where
-        F: FnOnce(Self) -> U,
-        Self: Sized;
-}
-
-impl<T> Apply for T {
-    fn apply<F, U>(self, f: F) -> U
-    where
-        F: FnOnce(Self) -> U,
-        Self: Sized,
-    {
-        f(self)
-    }
-}
-
-#[derive(Debug, FromVariants)]
-enum Error {
-    Io(std::io::Error),
-    Json(serde_json::Error),
-    Log(log::SetLoggerError),
-}
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -229,7 +209,8 @@ where
 
 fn db_init(db_path: Option<&str>) -> Result<Vec<Package>, Error> {
     let path = db_path.unwrap_or(DB_FILE);
-    let reader = BufReader::new(File::open(path)?);
+    let reader =
+        BufReader::new(File::open(path).map_err(|e| Error::ReadDbPath(PathBuf::from(path), e))?);
     let db = serde_json::from_reader(reader)?;
     Ok(db)
 }
