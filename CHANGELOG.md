@@ -1,5 +1,11 @@
 # faur
 
+### 0.2.2 (2022-11-02)
+
+#### Fixed
+
+- Account for new AUR package info fields.
+
 ### 0.2.0 (2022-06-15)
 
 ##### Changed
