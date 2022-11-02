@@ -64,7 +64,7 @@ enum By {
 /// it had no data from them (e.g. "CheckDepends"), but we always return all
 /// fields for increased safety.
 #[derive(Deserialize, Serialize)]
-#[serde(rename_all = "PascalCase", deny_unknown_fields)]
+#[serde(rename_all = "PascalCase")]
 struct Package {
     #[serde(default)]
     check_depends: Vec<String>,
