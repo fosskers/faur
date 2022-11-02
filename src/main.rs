@@ -68,6 +68,8 @@ enum By {
 struct Package {
     #[serde(default)]
     check_depends: Vec<String>,
+    #[serde(default, rename = "CoMaintainers")]
+    comaintainers: Vec<String>,
     #[serde(default)]
     conflicts: Vec<String>,
     #[serde(default)]
@@ -99,6 +101,7 @@ struct Package {
     provides: Vec<String>,
     #[serde(default)]
     replaces: Vec<String>,
+    submitter: Option<String>,
     #[serde(rename = "URL")]
     url: Option<String>,
     #[serde(rename = "URLPath")]
@@ -316,7 +319,9 @@ mod tests {
 
     #[test]
     fn parseable_database() {
-        let db = db_init(None);
-        assert!(db.is_ok());
+        match db_init(None) {
+            Ok(_) => {}
+            Err(e) => panic!("{e:?}"),
+        }
     }
 }
