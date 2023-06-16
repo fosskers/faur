@@ -1,13 +1,19 @@
 (ns faur
-  (:require [cheshire.core :as json]
-            [clojure.java.io :as io]
-            [clojure.string :as str]
-            [clojure.set :as set]
-            [ring.adapter.jetty :as ring]
-            [ring.middleware.params :refer [wrap-params]]))
+  (:require
+   [babashka.cli :as cli]
+   [cheshire.core :as json]
+   [clojure.java.io :as io]
+   [clojure.set :as set]
+   [clojure.string :as str]
+   [nrepl.server :as nrepl]
+   [ring.adapter.jetty :as ring]
+   [ring.middleware.params :refer [wrap-params]]))
 
 (def db-file "packages-meta-ext-v1.json")
 (def ignored-terms #{"for" "and" "the" "with" "from" "that" "your" "git" "bin" "this" "not" "svn" "who" "can" "you" "like" "into" "all" "more" "one" "any" "over" "non" "them" "are" "very" "when" "about" "yet" "many" "its" "also" "most" "lets" "just"})
+(def cli-options {:port {:default 8080 :coerce :long}
+                  :cert {:coerce :long}
+                  :key {:coerce :long}})
 
 (defn parse-packages
   "Given a path to raw package data, parse it all into memory."
@@ -66,6 +72,7 @@
   (every? printable-ascii? "hello")
   (every? printable-ascii? "日本語"))
 
+;; TODO account for keywords
 (defn packages-by-word
   "Given a list of all packages, yield a map that indexes them by words
   contained in their name and descriptions."
@@ -129,8 +136,8 @@
   "Yield the packages the match the given names."
   [all-by-name query-pkgs]
   (->> query-pkgs
-       (map #(get all-by-name %))))
-       ;; (filter identity))) ;; FIXME Bug!
+       (map #(get all-by-name %))
+       (filter identity)))
 
 (defn find-by-provs
   "Yield the packages that match the given provides."
@@ -156,17 +163,19 @@
 
 ;; NOTE DEMO THIS
 (comment
-  (->> ["python"]
-       (map #(get by-words %))
+  (->> ["python" "machine"]
+       (map #(get @by-words %))
        (apply set/intersection)
-       (take 100)
-       (map #(get by-names %))
-       json/generate-string))
+       count))
+       ;; (take 100)
+       ;; (map #(get @by-names %))
+       ;; json/generate-string))
 
 ;; NOTE DEMO THIS
 (comment
   (->> ["emacs-git" "firefox-git"]
-       (map #(get by-names %))))
+       (map #(get @by-names %))
+       (filter identity)))
 
 (defn handler [request]
   (let [uri    (:uri request)
@@ -181,17 +190,15 @@
             :else         (bad-route))
       (bad-route))))
 
-(comment
-  (let [packages (->> db-file parse-packages packages-by-name)]
-    (->> "spotify,teams,zoom"
-         (#(str/split % #","))
-         (map #(get packages %))
-         json/generate-string)))
+(defn -main [& args]
+  (let [{port :port} (cli/parse-opts args {:spec cli-options})]
+    (ring/run-jetty (wrap-params #'handler) {:port port :join? false})
+    (nrepl/start-server :port 7888)))
 
 (comment
   (def server (ring/run-jetty
                (wrap-params #'handler)
-               {:port 3000 :join? false})))
+               {:port 3030 :join? false})))
 
 (comment
   (.stop server))
