@@ -1,2 +1,5 @@
-/target
+rust/target/*
 packages-meta-ext-v1.json
+.lsp/*
+.clj-kondo/*
+.cpcache/*
