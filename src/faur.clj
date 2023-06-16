@@ -2,6 +2,7 @@
   (:require [cheshire.core :as json]
             [clojure.java.io :as io]
             [clojure.string :as str]
+            [clojure.set :as set]
             [ring.adapter.jetty :as ring]
             [ring.middleware.params :refer [wrap-params]]))
 
@@ -100,35 +101,17 @@
        reverse
        (take 30)))
 
-(comment
-  (->> ["aura-bin" "foo_bar-baz"]
-       (map #(str/split % #"(-|_)"))
-       (apply concat)))
+#_(defn wrap-pkg-names
+    "Parse the given package names to query and yield them as a vector."
+    [handler]
+    (fn [request]
+      (->> (update-in request [:params :names] #(str/split % #","))
+           handler)))
 
-(defn same-package?
-  "Are two packages logically the same?"
-  [a b]
-  (= (:Name a) (:Name b)))
-
-(defn wrap-pkg-names
-  "Parse the given package names to query and yield them as a vector."
-  [handler]
-  (fn [request]
-    (->> (update-in request [:params :names] #(str/split % #","))
-         handler)))
-
-(comment
-  (update-in {:params {:names "spotify,teams,zoom"}
-              :uri "/packages"}
-             [:params :names]
-             #(str/split % #","))
-  (update-in {:uri "/packages"}
-             [:params :names]
-             #(str/split % #",")))
-
-(def all-packages (->> db-file parse-packages))
-(def by-names (->> all-packages packages-by-name))
-(def by-provides (->> all-packages packages-by-provides))
+(def all-packages (->> db-file parse-packages atom))
+(def by-names (->> @all-packages packages-by-name atom))
+(def by-provides (->> @all-packages packages-by-provides atom))
+(def by-words (->> @all-packages packages-by-word atom))
 
 (defn bad-route []
   {:status 404
@@ -145,20 +128,45 @@
 (defn find-by-names
   "Yield the packages the match the given names."
   [all-by-name query-pkgs]
-  (map #(get all-by-name %) query-pkgs))
+  (->> query-pkgs
+       (map #(get all-by-name %))))
+       ;; (filter identity))) ;; FIXME Bug!
 
 (defn find-by-provs
   "Yield the packages that match the given provides."
   [all-by-name all-by-provs query-pkgs]
   (->> query-pkgs
-       (mapcat #(get all-by-provs %))
-       (into #{})
+       (map #(get all-by-provs %))
+       (apply set/union)
        (map #(get all-by-name %))))
 
 (comment
   (->> "aura,git"
        (#(str/split % #","))
        (find-by-provs by-names by-provides)))
+
+(defn find-by-words
+  "Yield the packages that contain the given words."
+  [all-by-name all-by-words query-terms]
+  (->> query-terms
+       (map #(get all-by-words %))
+       (apply set/intersection)
+       (take 100)
+       (map #(get all-by-name %))))
+
+;; NOTE DEMO THIS
+(comment
+  (->> ["python"]
+       (map #(get by-words %))
+       (apply set/intersection)
+       (take 100)
+       (map #(get by-names %))
+       json/generate-string))
+
+;; NOTE DEMO THIS
+(comment
+  (->> ["emacs-git" "firefox-git"]
+       (map #(get by-names %))))
 
 (defn handler [request]
   (let [uri    (:uri request)
@@ -167,12 +175,11 @@
                     (#(if (nil? %) [] (str/split % #","))))
         by     (get (:params request) "by")]
     (if (and (= :get method) (= "/packages" uri))
-      (cond (= by "prov") (->> pkgs (find-by-provs by-names by-provides) success)
-            :else (->> pkgs (find-by-names by-names) success))
+      (cond (= by "prov") (->> pkgs (find-by-provs @by-names @by-provides) success)
+            (= by "desc") (->> pkgs (find-by-words @by-names @by-words) success)
+            (nil? by)     (->> pkgs (find-by-names @by-names) success)
+            :else         (bad-route))
       (bad-route))))
-
-(comment
-  (str/split "" #","))
 
 (comment
   (let [packages (->> db-file parse-packages packages-by-name)]
