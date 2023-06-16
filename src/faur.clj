@@ -1,12 +1,10 @@
 (ns faur
   (:require [cheshire.core :as json]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [clojure.string :as str]))
 
 (def db-file "packages-meta-ext-v1.json")
-
-;; NOTE
-;; No special field conversion necessary!
-;; I can use keywords! They are case-sensitive. This should save a lot of memory.
+(def ignored-terms #{"for" "and" "the" "with" "from" "that" "your" "git" "bin" "this" "not" "svn" "who" "can" "you" "like" "into" "all" "more" "one" "any" "over" "non" "them" "are" "very" "when" "about" "yet" "many" "its" "also" "most" "lets" "just"})
 
 (defn parse-packages
   "Given a path to raw package data, parse it all into memory."
@@ -54,6 +52,56 @@
        parse-packages
        packages-by-provider
        (#(get % "emacs"))))
+
+(defn printable-ascii?
+  "Is the given char printable ASCII?"
+  [c]
+  (let [n (int c)]
+    (<= 32 n 127)))
+
+(comment
+  (every? printable-ascii? "hello")
+  (every? printable-ascii? "日本語"))
+
+(defn packages-by-word
+  "Given a list of all packages, yield a map that indexes them by words
+  contained in their name and descriptions."
+  [packages]
+  (reduce (fn [word-map pkg]
+            (let [name-terms  (str/split (:Name pkg) #"(-|_)")
+                  description (or (:Description pkg) "")
+                  desc-terms  (str/split description #" ")]
+              (->> (concat name-terms desc-terms)
+                   (mapcat #(str/split % #"(-|_|!|,|[\|]|:|/|[(]|[)]|[.]|'|[+]|\?|=|\*|\")"))
+                   (map #(str/replace % #"(\\|%|\])$" ""))
+                   (map #(str/replace % #"^(\[|~)" ""))
+                   (filter #(> (count %) 2))
+                   (filter #(every? printable-ascii? %))
+                   (map str/lower-case)
+                   (remove #(contains? ignored-terms %))
+                   (into #{})
+                   (reduce (fn [words word]
+                             (update words
+                                     word
+                                     (fn [set]
+                                       (let [set (or set #{})]
+                                         (conj set (:Name pkg))))))
+                           word-map))))
+          {} packages))
+
+(comment
+  (->> db-file
+       parse-packages
+       packages-by-word
+       (map (fn [[word ps]] {:word word :count (count ps)}))
+       (sort-by :count)
+       reverse
+       (take 30)))
+
+(comment
+  (->> ["aura-bin" "foo_bar-baz"]
+       (map #(str/split % #"(-|_)"))
+       (apply concat)))
 
 (defn same-package?
   "Are two packages logically the same?"
