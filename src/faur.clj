@@ -7,7 +7,8 @@
    [clojure.string :as str]
    [nrepl.server :as nrepl]
    [ring.adapter.jetty :as ring]
-   [ring.middleware.params :refer [wrap-params]]))
+   [ring.middleware.params :refer [wrap-params]]
+   [taoensso.timbre :refer [info set-min-level!]]))
 
 (def db-file "packages-meta-ext-v1.json")
 
@@ -201,6 +202,7 @@
 
 (defn -main [& args]
   (let [{port :port} (cli/parse-opts args {:spec cli-options})]
+    (set-min-level! :info)
     (ring/run-jetty (wrap-params #'handler) {:port port :join? false})
     (nrepl/start-server :port 7888)))
 
@@ -213,10 +215,11 @@
   (.stop server))
 
 (comment
+  (set-min-level! :info)
   (def counter (atom 0))
   (def fut (future
              (while true
-               (println (format "Printing: %d" @counter))
+               (info (format "Printing: %d" @counter))
                (swap! counter inc)
                (Thread/sleep 1000))))
   (future-cancel fut))

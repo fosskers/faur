@@ -1,5 +1,6 @@
 (ns data-fetch
-  (:require [clojure.java.io :as io]))
+  (:require [clojure.java.io :as io]
+            [taoensso.timbre :refer [info]]))
 
 (def db-file "packages-meta-ext-v1.json")
 
@@ -22,7 +23,7 @@
 
 (defn endless-update []
   (loop []
-    (println "Fetching updated package data.")
+    (info "Fetching updated package data.")
     (fetch)
     (unpack)
     (Thread/sleep seconds-in-hour)
@@ -36,7 +37,6 @@
   no internet connection or there is something wrong with the AUR."
   []
   (when (.exists (io/file db-file))
-    ;; FIXME use proper logging
-    (println "Local data already exists. Sleeping...")
+    (info "Local data already exists. Sleeping...")
     (Thread/sleep seconds-in-hour))
   (endless-update))
