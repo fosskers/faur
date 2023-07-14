@@ -2,5 +2,7 @@
  :deps {cheshire/cheshire {:mvn/version "5.11.0"}
         ring/ring-core {:mvn/version "1.10.0"}
         ring/ring-jetty-adapter {:mvn/version "1.10.0"}
-        org.babashka/cli {:mvn/version "0.7.51"}
-        nrepl/nrepl {:mvn/version "1.0.0"}}}
+        org.babashka/cli {:mvn/version "0.7.52"}
+        babashka/process {:mvn/version "0.5.21"}
+        nrepl/nrepl {:mvn/version "1.0.0"}
+        djblue/portal {:mvn/version "0.42.1"}}}

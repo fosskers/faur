@@ -10,7 +10,12 @@
    [ring.middleware.params :refer [wrap-params]]))
 
 (def db-file "packages-meta-ext-v1.json")
-(def ignored-terms #{"for" "and" "the" "with" "from" "that" "your" "git" "bin" "this" "not" "svn" "who" "can" "you" "like" "into" "all" "more" "one" "any" "over" "non" "them" "are" "very" "when" "about" "yet" "many" "its" "also" "most" "lets" "just"})
+
+(def ignored-terms
+  #{"for" "and" "the" "with" "from" "that" "your" "git" "bin" "this" "not" "svn"
+    "who" "can" "you" "like" "into" "all" "more" "one" "any" "over" "non" "them"
+    "are" "very" "when" "about" "yet" "many" "its" "also" "most" "lets" "just"})
+
 (def cli-options {:port {:default 8080 :coerce :long}
                   :cert {:coerce :long}
                   :key {:coerce :long}})
@@ -32,7 +37,8 @@
   (->> db-file
        parse-packages
        packages-by-name
-       (#(get % "aura-bin"))))
+       (#(get % "aura-bin"))
+       (#(doto % tap>))))
 
 (defn packages-by-provides
   "Given a list of all packages, yield a map that indexes them by the package
@@ -60,7 +66,8 @@
   (->> db-file
        parse-packages
        packages-by-provides
-       (#(get % "emacs"))))
+       (#(get % "emacs"))
+       (#(doto % tap>))))
 
 (defn printable-ascii?
   "Is the given char printable ASCII?"
@@ -106,7 +113,8 @@
        (map (fn [[word ps]] {:word word :count (count ps)}))
        (sort-by :count)
        reverse
-       (take 30)))
+       (take 30)
+       (#(doto % tap>))))
 
 #_(defn wrap-pkg-names
     "Parse the given package names to query and yield them as a vector."
@@ -148,9 +156,15 @@
        (map #(get all-by-name %))))
 
 (comment
+  (->> ["firefox"]
+       (find-by-provs @by-names @by-provides)
+       (map :Name)))
+
+(comment
   (->> "aura,git"
        (#(str/split % #","))
-       (find-by-provs by-names by-provides)))
+       (find-by-provs @by-names @by-provides)
+       (#(doto % tap>))))
 
 (defn find-by-words
   "Yield the packages that contain the given words."
@@ -161,21 +175,16 @@
        (take 100)
        (map #(get all-by-name %))))
 
-;; NOTE DEMO THIS
 (comment
-  (->> ["python" "machine"]
+  (->> ["python" "pandas"]
        (map #(get @by-words %))
        (apply set/intersection)
-       count))
-       ;; (take 100)
-       ;; (map #(get @by-names %))
-       ;; json/generate-string))
-
-;; NOTE DEMO THIS
-(comment
-  (->> ["emacs-git" "firefox-git"]
        (map #(get @by-names %))
-       (filter identity)))
+       (sort-by :LastModified)
+       reverse
+       (map #(select-keys % [:Name :LastModified]))
+       (#(doto % tap>))))
+       ;; json/generate-string))
 
 (defn handler [request]
   (let [uri    (:uri request)
@@ -202,3 +211,12 @@
 
 (comment
   (.stop server))
+
+(comment
+  (def counter (atom 0))
+  (def fut (future
+             (while true
+               (println (format "Printing: %d" @counter))
+               (swap! counter inc)
+               (Thread/sleep 1000))))
+  (future-cancel fut))
