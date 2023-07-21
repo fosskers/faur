@@ -3,29 +3,26 @@
    [cheshire.core :as json]
    [clojure.set :as set]
    [clojure.string :as str]
+   [clojure.tools.cli :refer [parse-opts]]
    [data-fetch :as fetch]
    [nrepl.server :as nrepl]
    [ring.adapter.jetty :as ring]
    [ring.middleware.params :refer [wrap-params]]
    [taoensso.timbre :refer [info set-min-level!]]))
 
-(def cli-options {:port {:default 8080 :coerce :long}
-                  :cert {:coerce :long}
-                  :key {:coerce :long}})
-
-#_(defn wrap-pkg-names
-    "Parse the given package names to query and yield them as a vector."
-    [handler]
-    (fn [request]
-      (->> (update-in request [:params :names] #(str/split % #","))
-           handler)))
+(def cli-options
+  [["-p" "--port PORT" "Port number"
+    :default 8080
+    :parse-fn #(Integer/parseInt %)]])
 
 (def all-packages (atom []))
 (def by-names (atom {}))
 (def by-provides (atom {}))
 (def by-words (atom {}))
 
-(defn bad-route []
+(defn bad-route
+  "Some unrecognized route was called."
+  []
   {:status 404
    :headers {"Content-Type" "text/html"}
    :body "That route does not exist."})
@@ -53,11 +50,6 @@
        (map #(get all-by-name %))))
 
 (comment
-  (->> ["firefox"]
-       (find-by-provs @by-names @by-provides)
-       (map :Name)))
-
-(comment
   (->> "aura,git"
        (#(str/split % #","))
        (find-by-provs @by-names @by-provides)
@@ -73,15 +65,10 @@
        (map #(get all-by-name %))))
 
 (comment
-  (->> ["python" "pandas"]
-       (map #(get @by-words %))
-       (apply set/intersection)
-       (map #(get @by-names %))
-       (sort-by :LastModified)
-       reverse
-       (map #(select-keys % [:Name :LastModified]))
-       (#(doto % tap>))))
-       ;; json/generate-string))
+  (->> #{"nintendo" "switch"}
+       (find-by-words @by-names @by-words)
+       (map #(select-keys % [:Name :Description]))
+       (sort-by :Name)))
 
 (defn handler [request]
   (let [uri    (:uri request)
@@ -98,7 +85,7 @@
       (bad-route))))
 
 (defn -main [& args]
-  (let [{port :port} {:port 8080}] ;; (cli/parse-opts args {:spec cli-options})]
+  (let [{port :port} (:options (parse-opts args cli-options))]
     (set-min-level! :info)
     (info "Reading initial package data...")
     (fetch/refresh-package-data all-packages by-names by-provides by-words)

@@ -63,7 +63,3 @@
     (info "Local data already exists. Sleeping...")
     (Thread/sleep seconds-in-hour))
   (endless-update all-packages by-names by-provides by-words))
-
-(comment
-  (def fut (future (endless-update (atom []) (atom {}) (atom {}) (atom {}))))
-  (future-cancel fut))
