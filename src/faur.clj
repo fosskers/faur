@@ -14,7 +14,9 @@
 (def cli-options
   [["-p" "--port PORT" "Port number"
     :default 8080
-    :parse-fn #(Integer/parseInt %)]])
+    :parse-fn #(Integer/parseInt %)]
+   [nil "--key PATH"  "Path to a TLS certificate's private key"]
+   [nil "--cert PATH" "Path to a TLS certificate"]])
 
 (def all-packages (atom []))
 (def by-names (atom {}))
@@ -85,21 +87,29 @@
             :else         (bad-route))
       (bad-route))))
 
-(defn server-config [port]
-  {:port port
-   :join? false
-   :ssl-context (ssl/ssl-context "privkey.pem" "fullchain.pem")
-   :ssl-port 3001
-   :client-auth :want})
+(defn server-config
+  "Configure the REST server based on the given commandline arguments. Will run in
+  HTTS-mode if a TLS cert/key are available."
+  [opts]
+  (let [key   (:key opts)
+        cert  (:cert opts)
+        basic {:port (:port opts)
+               :join? false}]
+    (if (and key cert)
+      (assoc basic
+             :ssl-context (ssl/ssl-context (:key opts) (:cert opts))
+             :ssl-port 3001
+             :client-auth :want)
+      basic)))
 
 (defn -main [& args]
-  (let [{port :port} (:options (parse-opts args cli-options))]
+  (let [opts (:options (parse-opts args cli-options))]
     (set-min-level! :info)
     (info "Reading initial package data...")
     (fetch/refresh-package-data all-packages by-names by-provides by-words)
     (info "Spawing refresh thread...")
     (def fut (future (fetch/update-data all-packages by-names by-provides by-words)))
-    (info "Starting servers.")
-    (def server (ring/run-jetty (wrap-params #'handler) (server-config port)))
+    (info "Starting API server.")
+    (def server (ring/run-jetty (wrap-params #'handler) (server-config opts)))
+    (info "Starting nREPL.")
     (nrepl/start-server :port 7888)))
-

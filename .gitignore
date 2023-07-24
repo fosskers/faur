@@ -4,3 +4,4 @@ packages-meta-ext-v1.json
 .clj-kondo/*
 .cpcache/*
 .nrepl-port
+*.pem
