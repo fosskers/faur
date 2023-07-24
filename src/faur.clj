@@ -5,6 +5,7 @@
    [clojure.string :as str]
    [clojure.tools.cli :refer [parse-opts]]
    [data-fetch :as fetch]
+   [less.awful.ssl :as ssl]
    [nrepl.server :as nrepl]
    [ring.adapter.jetty :as ring]
    [ring.middleware.params :refer [wrap-params]]
@@ -84,6 +85,13 @@
             :else         (bad-route))
       (bad-route))))
 
+(defn server-config [port]
+  {:port port
+   :join? false
+   :ssl-context (ssl/ssl-context "privkey.pem" "fullchain.pem")
+   :ssl-port 3001
+   :client-auth :want})
+
 (defn -main [& args]
   (let [{port :port} (:options (parse-opts args cli-options))]
     (set-min-level! :info)
@@ -92,5 +100,6 @@
     (info "Spawing refresh thread...")
     (def fut (future (fetch/update-data all-packages by-names by-provides by-words)))
     (info "Starting servers.")
-    (def server (ring/run-jetty (wrap-params #'handler) {:port port :join? false}))
+    (def server (ring/run-jetty (wrap-params #'handler) (server-config port)))
     (nrepl/start-server :port 7888)))
+

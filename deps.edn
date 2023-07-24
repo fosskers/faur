@@ -2,6 +2,7 @@
  :deps {babashka/process {:mvn/version "0.5.21"}
         cheshire/cheshire {:mvn/version "5.11.0"}
         com.taoensso/timbre {:mvn/version "6.2.1"}
+        less-awful-ssl/less-awful-ssl {:mvn/version "1.0.6"}
         nrepl/nrepl {:mvn/version "1.0.0"}
         org.clojure/tools.cli {:mvn/version "1.0.219"}
         ring/ring-core {:mvn/version "1.10.0"}
