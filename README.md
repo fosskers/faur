@@ -13,8 +13,7 @@ A `faur` instance is a mirror of all package data on the AUR. `faur` is...
   - Searching by "provides".
   - Searching by multiple terms at once (has "AND" semantics).
 - **Small**
-  - ~300 lines of Rust.
-  - 3mb release binary.
+  - ~300 lines of Clojure.
   - No external database or other infrastructure required.
 
 For instance, visit:
@@ -55,7 +54,7 @@ gzip -d packages-meta-ext-v1.json.gz
 Then simply:
 
 ```sh
-cargo run --release -- --local --port=8080
+clojure -M -m faur
 ```
 
-This will run a local `faur` server on http://127.0.0.1:8080 .
+This will run a local `faur` server on http://0.0.0.0:8080 .

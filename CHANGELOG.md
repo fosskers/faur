@@ -1,5 +1,9 @@
 # faur
 
+### Unreleased
+
+Faur has been rewritten Clojure. A separate `faur-supervisor` is no longer necessary.
+
 ### 0.2.2 (2022-11-02)
 
 #### Fixed
