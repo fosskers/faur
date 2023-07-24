@@ -95,7 +95,7 @@
     (if (and key cert)
       (assoc basic
              :ssl-context (ssl/ssl-context key cert)
-             :ssl-port 3001
+             :ssl-port 443
              :client-auth :want)
       basic)))
 
