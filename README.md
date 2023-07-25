@@ -24,11 +24,11 @@ For instance, visit:
 
 There is only a single endpoint: `packages`.
 
-| Endpoint                          | Function                                                              | Big-O Efficiency |
-| --------------------------------- | --------------------------------------------------------------------- | ---------------- |
-| `packages?names=<TOKENS>`         | Look up `m`-many packages by name                                     | `O(mlogn)`       |
-| `packages?names=<TOKEN>&by=prov`  | Find packages that satisfy `TOKEN`                                    | `O(logn)`        |
-| `packages?names=<TOKENS>&by=desc` | Find packages that contain all `TOKENS` in their names / descriptions | `O(mlogn)`       |
+| Endpoint                          | Function                                                                         | Big-O Efficiency |
+|-----------------------------------|----------------------------------------------------------------------------------|------------------|
+| `packages?names=<TOKENS>`         | Look up `m`-many packages by name                                                | `O(mlogn)`       |
+| `packages?names=<TOKEN>&by=prov`  | Find packages that satisfy `TOKEN`                                               | `O(logn)`        |
+| `packages?names=<TOKENS>&by=desc` | Find packages that contain all `TOKENS` in their names / descriptions / keywords | `O(mlogn)`       |
 
 Where multiple `TOKENS` are accepted, these are separated by commas, as in:
 
@@ -56,7 +56,13 @@ Then simply:
 clojure -M -m faur
 ```
 
-This will run a local `faur` server on http://0.0.0.0:8080 .
+This will run a local `faur` server on http://0.0.0.0:8080 . To run in TLS mode,
+pass `--key` and `--cert` as well and HTTPS requests will be accepted on port
+443. For example, here is how the official faur instance itself is invoked:
+
+``` sh
+clojure -M -m faur --key /etc/letsencrypt/live/faur.fosskers.ca/privkey.pem --cert /etc/letsencrypt/live/faur.fosskers.ca/fullchain.pem 
+```
 
 ### Live Remote REPL
 
