@@ -5,7 +5,6 @@ A `faur` instance is a mirror of all package data on the AUR. `faur` is...
 - **Simple**
   - There is only a single endpoint (i.e. no difference between `info` and `search`).
   - JSON format is identical to the AUR RPC (but failure is always an empty list).
-  - All possible fields are always returned (i.e. no crash-inducing missing JSON fields).
 - **Fast**
   - All data is held in memory with custom indices for near-instant lookups.
   - No rate limits.
