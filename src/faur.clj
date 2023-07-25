@@ -18,10 +18,11 @@
    [nil "--key PATH"  "Path to a TLS certificate's private key"]
    [nil "--cert PATH" "Path to a TLS certificate"]])
 
-(def all-packages (atom []))
-(def by-names (atom {}))
-(def by-provides (atom {}))
-(def by-words (atom {}))
+(defonce all-packages (atom []))
+(defonce by-names (atom {}))
+(defonce by-provides (atom {}))
+(defonce by-words (atom {}))
+(defonce req-count (atom 0))
 
 (defn bad-route
   "Some unrecognized route was called."
@@ -33,6 +34,7 @@
 (defn success
   "Yield a good response as JSON."
   [edn]
+  (swap! req-count inc)
   {:status 200
    :headers {"Content-Type" "application/json"}
    :body (json/generate-string edn)})
