@@ -57,3 +57,19 @@ clojure -M -m faur
 ```
 
 This will run a local `faur` server on http://0.0.0.0:8080 .
+
+### Live Remote REPL
+
+For live debugging, an [nREPL][0] server is embedded and ran on
+`localhost:7888`. If running `faur` on a remote server, you can access this
+nREPL remotely by first doing an SSH port-forward on your local machine:
+
+``` sh
+ssh -NL 7888:localhost:7888 root@<IP-OF-REMOTE-SERVER> -v
+```
+
+and then performing a `cider-connect-clj` (or similar), selecting
+`localhost:7888` as the target. Once connected, you're free to inspect the
+various Atoms or redefine functions.
+
+[0]: https://nrepl.org/nrepl/index.html
