@@ -110,7 +110,6 @@
   "Read raw package metadata from a downloaded DB file, and form new indexes."
   []
   (let [all-packages (parse-packages db-file)]
-    {:all-packages all-packages
-     :by-names     (packages-by-name all-packages)
-     :by-provides  (packages-by-provides all-packages)
-     :by-words     (packages-by-word all-packages)}))
+    {:by-names    (packages-by-name all-packages)
+     :by-provides (packages-by-provides all-packages)
+     :by-words    (packages-by-word all-packages)}))

@@ -12,9 +12,13 @@
   (def portal (p/open))
   (add-tap #'p/submit))
 
+;; Manually pull updated package data.
 (comment
   (fetch/fetch)
   (fetch/unpack))
+
+(comment
+  (fetch/refresh-package-data faur/by-names faur/by-provides faur/by-words))
 
 (comment
   (def server (ring/run-jetty
@@ -23,3 +27,6 @@
 
 (comment
   (.stop server))
+
+(comment
+  (deref faur/req-count))

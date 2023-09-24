@@ -31,22 +31,21 @@
 (defn refresh-package-data
   "Given an atom for the various package indices, read the current on-disk data
   and refresh them."
-  [all-packages by-names by-provides by-words]
+  [by-names by-provides by-words]
   (let [pkgs (pkgs/read-packages)]
-    (swap! all-packages (constantly (:all-packages pkgs)))
-    (swap! by-names     (constantly (:by-names pkgs)))
-    (swap! by-provides  (constantly (:by-provides pkgs)))
-    (swap! by-words     (constantly (:by-words pkgs)))))
+    (swap! by-names    (constantly (:by-names pkgs)))
+    (swap! by-provides (constantly (:by-provides pkgs)))
+    (swap! by-words    (constantly (:by-words pkgs)))))
 
 (defn endless-update
   "Endlessly fetch package data from the AUR server. Upon an individual failure,
   does not crash, but prints a warning."
-  [all-packages by-names by-provides by-words]
+  [by-names by-provides by-words]
   (loop []
     (info "Fetching updated package data.")
     (if (and (fetch) (unpack))
       (do (info "Reforming package indices...")
-          (refresh-package-data all-packages by-names by-provides by-words))
+          (refresh-package-data by-names by-provides by-words))
       (warn "Unable to fetch new package data!"))
     (info "Sleeping...")
     (Thread/sleep seconds-in-hour)
@@ -58,8 +57,8 @@
   Upon first startup, this will sleep for one hour if it detects that _some_
   data already exists locally. This it to prevent bad looping behaviour there is
   no internet connection or there is something wrong with the AUR."
-  [all-packages by-names by-provides by-words]
+  [by-names by-provides by-words]
   (when (.exists (io/file pkgs/db-file))
     (info "Local data already exists. Sleeping...")
     (Thread/sleep seconds-in-hour))
-  (endless-update all-packages by-names by-provides by-words))
+  (endless-update by-names by-provides by-words))

@@ -18,7 +18,6 @@
    [nil "--key PATH"  "Path to a TLS certificate's private key"]
    [nil "--cert PATH" "Path to a TLS certificate"]])
 
-(defonce all-packages (atom []))
 (defonce by-names (atom {}))
 (defonce by-provides (atom {}))
 (defonce by-words (atom {}))
@@ -70,7 +69,7 @@
        (map #(get all-by-name %))))
 
 (comment
-  (->> #{"nintendo" "switch"}
+  (->> #{"nintendo" "switch" "emulator"}
        (find-by-words @by-names @by-words)
        (map #(select-keys % [:Name :Description]))
        (sort-by :Name)))
@@ -108,9 +107,9 @@
   (let [opts (:options (parse-opts args cli-options))]
     (set-min-level! :info)
     (info "Reading initial package data...")
-    (fetch/refresh-package-data all-packages by-names by-provides by-words)
+    (fetch/refresh-package-data by-names by-provides by-words)
     (info "Spawing refresh thread...")
-    (swap! fut (constantly (future (fetch/update-data all-packages by-names by-provides by-words))))
+    (swap! fut (constantly (future (fetch/update-data by-names by-provides by-words))))
     (info "Starting API server.")
     (swap! server (constantly (ring/run-jetty (wrap-params #'handler) (server-config opts))))
     (info "Starting nREPL.")
