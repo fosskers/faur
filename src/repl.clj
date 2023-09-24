@@ -28,5 +28,13 @@
 (comment
   (.stop server))
 
+;; Request counts
 (comment
   (deref faur/req-count))
+
+;; Manually controlling the data refresher
+(comment
+  (future-done? @faur/fut)
+  (future-cancel @faur/fut)
+  (future-cancelled? @faur/fut)
+  (faur/update-data-forever))

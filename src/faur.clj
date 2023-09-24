@@ -103,13 +103,18 @@
 (defonce fut (atom nil))
 (defonce server (atom nil))
 
+(defn update-data-forever
+  "Spawn a future that endlessly updates the package data."
+  []
+  (swap! fut (constantly (future (fetch/update-data by-names by-provides by-words)))))
+
 (defn -main [& args]
   (let [opts (:options (parse-opts args cli-options))]
     (set-min-level! :info)
     (info "Reading initial package data...")
     (fetch/refresh-package-data by-names by-provides by-words)
     (info "Spawing refresh thread...")
-    (swap! fut (constantly (future (fetch/update-data by-names by-provides by-words))))
+    (update-data-forever)
     (info "Starting API server.")
     (swap! server (constantly (ring/run-jetty (wrap-params #'handler) (server-config opts))))
     (info "Starting nREPL.")
