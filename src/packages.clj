@@ -65,35 +65,51 @@
   (let [n (int c)]
     (<= 32 n 127)))
 
+(defn char-number?
+  "Is the given char a number?"
+  [c]
+  (let [n (int c)]
+    (<= 48 n 57)))
+
 (comment
   (every? printable-ascii? "hello")
   (every? printable-ascii? "日本語"))
 
-;; TODO account for keywords
+(def separators
+  "Characters upon which to split a package's description even further."
+  #"[-_!,:/()\[\].'+?=*\"#$%&{}|;~\\<>@`^]")
+
+(comment
+  (str/split "hello+([why" separators))
+
+(def split-and-clean
+  (comp (mapcat #(str/split % separators))
+        (filter #(> (count %) 2))
+        (filter #(every? printable-ascii? %))
+        (filter #(not (char-number? (first %))))
+        (map str/lower-case)
+        (remove #(contains? ignored-terms %))
+        (distinct)))
+
+(comment
+  (transduce (split-and-clean)
+             conj
+             (str/split "The.quick 'brown' 🦊 jumps-OvER th 1337 QUICK <dog>!" #" ")))
+
 (defn packages-by-word
   "Given a list of all packages, yield a map that indexes them by words
   contained in their name and descriptions."
   [packages]
   (reduce (fn [word-map pkg]
-            (let [name-terms  (str/split (:Name pkg) #"(-|_)")
+            (let [name        (:Name pkg)
                   description (or (:Description pkg) "")
-                  desc-terms  (str/split description #" ")]
-              (->> (concat name-terms desc-terms)
-                   (mapcat #(str/split % #"(-|_|!|,|[\|]|:|/|[(]|[)]|[.]|'|[+]|\?|=|\*|\")"))
-                   (map #(str/replace % #"(\\|%|\])$" ""))
-                   (map #(str/replace % #"^(\[|~)" ""))
-                   (filter #(> (count %) 2))
-                   (filter #(every? printable-ascii? %))
-                   (map str/lower-case)
-                   (remove #(contains? ignored-terms %))
-                   (into #{})
-                   (reduce (fn [words word]
-                             (update words
-                                     word
-                                     (fn [set]
-                                       (let [set (or set #{})]
-                                         (conj set (:Name pkg))))))
-                           word-map))))
+                  name-terms  (str/split name #"(-|_)")
+                  desc-terms  (str/split description #" ")
+                  keyw-terms  (:Keywords pkg)]
+              (transduce split-and-clean
+                         (completing (fn [words word] (update words word #(conj (or % #{}) name))))
+                         word-map
+                         (concat name-terms desc-terms keyw-terms))))
           {} packages))
 
 (comment
@@ -101,10 +117,10 @@
        parse-packages
        packages-by-word
        (map (fn [[word ps]] {:word word :count (count ps)}))
-       (sort-by :count)
-       reverse
-       (take 30)
-       (#(doto % tap>))))
+       (sort-by :count)))
+       ;; reverse
+       ;; (take 30)))
+       ;; (#(doto % tap>))))
 
 (defn read-packages
   "Read raw package metadata from a downloaded DB file, and form new indexes."
