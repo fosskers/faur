@@ -90,7 +90,7 @@
 
 (defn server-config
   "Configure the REST server based on the given commandline arguments. Will run in
-  HTTS-mode if a TLS cert/key are available."
+  HTTPS-mode if a TLS cert/key are available."
   [{:keys [key cert port]}]
   (let [basic {:port port :join? false}]
     (if (and key cert)
@@ -100,7 +100,8 @@
              :client-auth :want)
       basic)))
 
-(defonce fut (atom nil))
+(defonce fut    (atom nil))
+(defonce opts   (atom nil))
 (defonce server (atom nil))
 
 (defn update-data-forever
@@ -108,14 +109,20 @@
   []
   (swap! fut (constantly (future (fetch/update-data by-names by-provides by-words)))))
 
+(defn start-server
+  "Start the REST API."
+  [opts]
+  (swap! server (constantly (ring/run-jetty (wrap-params #'handler) (server-config opts)))))
+
 (defn -main [& args]
-  (let [opts (:options (parse-opts args cli-options))]
+  (let [raw-opts (:options (parse-opts args cli-options))]
+    (swap! opts (constantly raw-opts))
     (set-min-level! :info)
     (info "Reading initial package data...")
     (fetch/refresh-package-data by-names by-provides by-words)
     (info "Spawing refresh thread...")
     (update-data-forever)
     (info "Starting API server.")
-    (swap! server (constantly (ring/run-jetty (wrap-params #'handler) (server-config opts))))
+    (start-server @opts)
     (info "Starting nREPL.")
     (nrepl/start-server :port 7888)))

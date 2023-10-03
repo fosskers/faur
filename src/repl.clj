@@ -5,12 +5,10 @@
    [ring.adapter.jetty :as ring]
    [ring.middleware.params :refer [wrap-params]]))
 
-(comment
-  (require '[portal.api :as p]))
-
-(comment
-  (def portal (p/open))
-  (add-tap #'p/submit))
+#_(comment
+    (require '[portal.api :as p])
+    (def portal (p/open))
+    (add-tap #'p/submit))
 
 ;; Manually pull updated package data.
 (comment
@@ -20,19 +18,26 @@
 (comment
   (fetch/refresh-package-data faur/by-names faur/by-provides faur/by-words))
 
+;; Manually start a local server.
 (comment
-  (def server (ring/run-jetty
-               (wrap-params #'faur/handler)
-               {:port 3030 :join? false})))
+  (swap! faur/server
+         (constantly (ring/run-jetty
+                      (wrap-params #'faur/handler)
+                      {:port 3030 :join? false}))))
 
+;; Manually start a production, HTTPS server.
 (comment
-  (.stop server))
+  (faur/start-server @faur/opts))
 
-;; Request counts
+;; Stop a server started in either mode.
+(comment
+  (.stop @faur/server))
+
+;; Request counts.
 (comment
   (deref faur/req-count))
 
-;; Manually controlling the data refresher
+;; Manually controlling the data refresher.
 (comment
   (future-done? @faur/fut)
   (future-cancel @faur/fut)
