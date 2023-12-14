@@ -3,9 +3,11 @@
             [clojure.string :as str]
             [cheshire.core :as json]))
 
-(def db-file "packages-meta-ext-v1.json")
+(def db-file
+  "The location of the the decompressed package data."
+  "packages-meta-ext-v1.json")
 
-(def ignored-terms
+(def ^:private ignored-terms
   #{"for" "and" "the" "with" "from" "that" "your" "git" "bin" "this" "not" "svn"
     "who" "can" "you" "like" "into" "all" "more" "one" "any" "over" "non" "them"
     "are" "very" "when" "about" "yet" "many" "its" "also" "most" "lets" "just"})
@@ -59,13 +61,13 @@
        (#(get % "emacs"))
        (#(doto % tap>))))
 
-(defn printable-ascii?
+(defn- printable-ascii?
   "Is the given char printable ASCII?"
   [c]
   (let [n (int c)]
     (<= 32 n 127)))
 
-(defn char-number?
+(defn- char-number?
   "Is the given char a number?"
   [c]
   (let [n (int c)]
@@ -75,14 +77,14 @@
   (every? printable-ascii? "hello")
   (every? printable-ascii? "日本語"))
 
-(def separators
+(def ^:private separators
   "Characters upon which to split a package's description even further."
   #"[-_!,:/()\[\].'+?=*\"#$%&{}|;~\\<>@`^]")
 
 (comment
   (str/split "hello+([why" separators))
 
-(def split-and-clean
+(def ^:private split-and-clean
   (comp (mapcat #(str/split % separators))
         (filter #(> (count %) 2))
         (filter #(every? printable-ascii? %))

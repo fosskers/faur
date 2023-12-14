@@ -5,11 +5,11 @@
    [packages :as pkgs]
    [taoensso.timbre :refer [info warn]]))
 
-(def seconds-in-hour 3600000)
+(def ^:private seconds-in-hour 3600000)
 
-(def tarball (format "%s.gz" pkgs/db-file))
+(def ^:private tarball (format "%s.gz" pkgs/db-file))
 
-(def tarball-url
+(def ^:private tarball-url
   "The location we expect to be able to download the tarball of all current
   package data."
   (format "https://aur.archlinux.org/%s" tarball))
