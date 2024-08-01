@@ -45,6 +45,11 @@
        (map #(get all-by-name %))
        (filter identity)))
 
+(comment
+  (->> #{"firefox-nightly"}
+       (find-by-names @by-names)
+       (map #(select-keys % [:Name :Description :NumVotes]))))
+
 (defn find-by-provs
   "Yield the packages that match the given provides."
   [all-by-name all-by-provs query-pkgs]
@@ -54,10 +59,11 @@
        (map #(get all-by-name %))))
 
 (comment
-  (->> "aura,git"
+  (->> "aura"
        (#(str/split % #","))
        (find-by-provs @by-names @by-provides)
-       (#(doto % tap>))))
+       (first)))
+       ;; (#(doto % tap>))))
 
 (defn find-by-words
   "Yield the packages that contain the given words."
@@ -65,14 +71,14 @@
   (->> query-terms
        (map #(get all-by-words %))
        (apply set/intersection)
-       (take 100)
-       (map #(get all-by-name %))))
+       (map #(get all-by-name %))
+       (sort-by :NumVotes (fn [a b] (compare b a)))
+       (take 50)))
 
 (comment
-  (->> #{"nintendo" "switch" "emulator"}
+  (->> #{"firefox"}
        (find-by-words @by-names @by-words)
-       (map #(select-keys % [:Name :Description]))
-       (sort-by :Name)))
+       (map #(select-keys % [:Name :NumVotes]))))
 
 (defn handler [request]
   (let [uri    (:uri request)

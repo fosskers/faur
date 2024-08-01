@@ -1,6 +1,7 @@
 (ns repl
   (:require
    [data-fetch :as fetch]
+   [packages]
    [faur]
    [ring.adapter.jetty :as ring]
    [ring.middleware.params :refer [wrap-params]]))
@@ -14,6 +15,17 @@
 (comment
   (fetch/fetch)
   (fetch/unpack))
+
+;; All packages.
+#_(comment
+    (->> packages/db-file
+         (packages/parse-packages)
+         (map :PackageBase)
+         (into #{})
+         (#(with-open [wtr (io/writer "filenames.txt")]
+             (binding [*out* wtr])
+             (doseq [name %]
+               (print wtr name))))))
 
 (comment
   (fetch/refresh-package-data faur/by-names faur/by-provides faur/by-words))
