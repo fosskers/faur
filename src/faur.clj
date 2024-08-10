@@ -23,6 +23,11 @@
 (defonce by-words (atom {}))
 (defonce req-count (atom 0))
 
+(defn monitor
+  "A health check endpoint."
+  []
+  {:status 200})
+
 (defn bad-route
   "Some unrecognized route was called."
   []
@@ -87,12 +92,14 @@
                     (#(if (nil? %) [] (str/split % #",")))
                     (into #{}))  ; Prevents repeated query terms.
         by     (get (:params request) "by")]
-    (if (and (= :get method) (= "/packages" uri))
+    (cond
+      (and (= :get method) (= "/packages" uri))
       (cond (= by "prov") (->> pkgs (find-by-provs @by-names @by-provides) success)
             (= by "desc") (->> pkgs (find-by-words @by-names @by-words) success)
             (nil? by)     (->> pkgs (find-by-names @by-names) success)
             :else         (bad-route))
-      (bad-route))))
+      (= :head method) (monitor)
+      :else (bad-route))))
 
 (defn server-config
   "Configure the REST server based on the given commandline arguments. Will run in
