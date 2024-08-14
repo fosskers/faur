@@ -108,6 +108,7 @@
   (let [basic {:port port :join? false}]
     (if (and key cert)
       (assoc basic
+             :http? false
              :ssl-context (ssl/ssl-context key cert)
              :ssl-port 443
              :client-auth :want)
