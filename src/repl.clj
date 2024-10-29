@@ -49,6 +49,10 @@
 (comment
   (deref faur/req-count))
 
+;; How is the server currently being configured?
+(comment
+  (faur/server-config @faur/opts))
+
 ;; Manually controlling the data refresher.
 (comment
   (future-done? @faur/fut)
