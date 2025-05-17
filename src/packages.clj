@@ -67,7 +67,7 @@
   (let [n (int c)]
     (<= 32 n 127)))
 
-(defn- char-number?
+(defn char-number?
   "Is the given char a number?"
   [c]
   (let [n (int c)]
@@ -88,13 +88,15 @@
   (comp (mapcat #(str/split % separators))
         (filter #(> (count %) 2))
         (filter #(every? printable-ascii? %))
-        (filter #(not (char-number? (first %))))
+        ;; Some packages legitimately start with a single number.
+        (filter #(not (and (char-number? (first %))
+                           (char-number? (second %)))))
         (map str/lower-case)
         (remove #(contains? ignored-terms %))
         (distinct)))
 
 (comment
-  (transduce (split-and-clean)
+  (transduce split-and-clean
              conj
              (str/split "The.quick 'brown' 🦊 jumps-OvER th 1337 QUICK <dog>!" #" ")))
 

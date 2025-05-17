@@ -27,8 +27,19 @@
              (doseq [name %]
                (print wtr name))))))
 
+;; Populate the "database" atoms. Requires that the json file be unpacked on
+;; disk.
 (comment
   (fetch/refresh-package-data faur/by-names faur/by-provides faur/by-words))
+
+(comment
+  (->> @faur/by-words
+       keys
+       (filter #(packages/char-number? (first %)))
+       sort))
+
+(comment
+  (count @faur/by-words))
 
 ;; Manually start a local server.
 (comment
