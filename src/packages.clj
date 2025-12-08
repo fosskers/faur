@@ -86,7 +86,8 @@
 
 (def ^:private split-and-clean
   (comp (mapcat #(str/split % separators))
-        (filter #(> (count %) 2))
+        (filter #(or (> (count %) 2)
+                     (= % "i3")))
         (filter #(every? printable-ascii? %))
         ;; Some packages legitimately start with a single number.
         (filter #(not (and (char-number? (first %))
